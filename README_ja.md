@@ -272,8 +272,10 @@ Request:
   "type": "post",
   "post_id": 1,
   "title": "WordPress Security",
+  "description": "WordPress のログイン、権限、プラグイン更新を安全に運用するための実践ガイド。",
   "url": "https://example.com/wordpress-security",
   "post_type": "post",
+  "thumbnail_url": "https://example.com/wp-content/uploads/wordpress-security-150x150.png",
   "score": 0.91
 }
 ```
@@ -286,6 +288,7 @@ Request:
   "attachment_id": 10,
   "post_id": 10,
   "title": "cms-comparison",
+  "description": "WordPress と Headless CMS の選択肢を比較する図解。",
   "url": "https://example.com/wp-content/uploads/cms-comparison.png",
   "post_type": "attachment",
   "thumbnail_url": "https://example.com/wp-content/uploads/cms-comparison-150x150.png",

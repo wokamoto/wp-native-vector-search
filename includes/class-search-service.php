@@ -152,8 +152,10 @@ final class Search_Service {
 			'type'          => 'post',
 			'post_id'       => (int) $post->ID,
 			'title'         => get_the_title( $post ),
+			'description'   => $this->build_result_description( $post ),
 			'url'           => get_permalink( $post ),
 			'post_type'     => $post->post_type,
+			'thumbnail_url' => $this->get_post_thumbnail_url( $post ),
 			'score'         => round( (float) $match['score'], 6 ),
 			'vector_score'  => round( (float) $match['vector_score'], 6 ),
 			'keyword_score' => round( (float) $match['keyword_score'], 6 ),
@@ -173,6 +175,7 @@ final class Search_Service {
 			'attachment_id'  => (int) $attachment->ID,
 			'post_id'        => (int) $attachment->ID,
 			'title'          => get_the_title( $attachment ),
+			'description'    => $this->build_result_description( $attachment ),
 			'url'            => wp_get_attachment_url( (int) $attachment->ID ),
 			'post_type'      => 'attachment',
 			'thumbnail_url'  => wp_get_attachment_image_url( (int) $attachment->ID, 'thumbnail' ),
@@ -181,6 +184,58 @@ final class Search_Service {
 			'vector_score'   => round( (float) $match['vector_score'], 6 ),
 			'keyword_score'  => round( (float) $match['keyword_score'], 6 ),
 		);
+	}
+
+	/**
+	 * Build a short description for a search result.
+	 *
+	 * @param \WP_Post $post Post or attachment object.
+	 */
+	private function build_result_description( \WP_Post $post ): string {
+		if ( 'attachment' === $post->post_type ) {
+			$description = (string) get_post_meta( (int) $post->ID, Media_Describer::META_DESCRIPTION, true );
+			if ( '' !== trim( $description ) ) {
+				return $this->trim_result_description( $description );
+			}
+		}
+
+		$text = '' !== trim( $post->post_excerpt ) ? $post->post_excerpt : $post->post_content;
+		$text = strip_shortcodes( $text );
+		$text = wp_strip_all_tags( $text, true );
+		$text = html_entity_decode( $text, ENT_QUOTES | ENT_HTML5, get_bloginfo( 'charset' ) );
+
+		return $this->trim_result_description( $text );
+	}
+
+	/**
+	 * Trim result descriptions to a compact plain-text snippet.
+	 *
+	 * @param string $text Input text.
+	 */
+	private function trim_result_description( string $text ): string {
+		$text = preg_replace( '/\s+/u', ' ', $text );
+		$text = is_string( $text ) ? trim( $text ) : '';
+
+		if ( '' === $text ) {
+			return '';
+		}
+
+		if ( function_exists( 'mb_strlen' ) && function_exists( 'mb_substr' ) ) {
+			return mb_strlen( $text ) > 160 ? mb_substr( $text, 0, 157 ) . '...' : $text;
+		}
+
+		return strlen( $text ) > 160 ? substr( $text, 0, 157 ) . '...' : $text;
+	}
+
+	/**
+	 * Get a normalized featured image URL for post-like search results.
+	 *
+	 * @param \WP_Post $post Post object.
+	 */
+	private function get_post_thumbnail_url( \WP_Post $post ): string {
+		$thumbnail_url = get_the_post_thumbnail_url( $post, 'thumbnail' );
+
+		return is_string( $thumbnail_url ) ? $thumbnail_url : '';
 	}
 
 	/**

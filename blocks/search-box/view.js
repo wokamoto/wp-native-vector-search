@@ -33,10 +33,12 @@
 			var li = document.createElement( 'li' );
 			var link = document.createElement( 'a' );
 			var title = document.createElement( 'span' );
+			var content = document.createElement( 'div' );
 			var score = document.createElement( 'span' );
 
 			link.href = item.url;
 			link.className = 'wp-native-vector-search-box__result-link';
+			content.className = 'wp-native-vector-search-box__result-content';
 			title.className = 'wp-native-vector-search-box__result-title';
 			title.textContent = item.title || String( item.post_id );
 			score.className = 'wp-native-vector-search-box__score';
@@ -52,7 +54,15 @@
 				link.appendChild( thumbnail );
 			}
 
-			link.appendChild( title );
+			content.appendChild( title );
+			if ( item.description ) {
+				var description = document.createElement( 'span' );
+				description.className = 'wp-native-vector-search-box__result-description';
+				description.textContent = item.description;
+				content.appendChild( description );
+			}
+
+			link.appendChild( content );
 			li.appendChild( link );
 			li.appendChild( score );
 			results.appendChild( li );

@@ -58,9 +58,27 @@
 	border-radius: 4px;
 }
 
+.wp-native-vector-search-box__result-content {
+	display: inline-flex;
+	min-width: 0;
+	flex-direction: column;
+	gap: 0.15rem;
+}
+
 .wp-native-vector-search-box__result-title {
 	min-width: 0;
 	overflow-wrap: anywhere;
+}
+
+.wp-native-vector-search-box__result-description {
+	display: -webkit-box;
+	max-width: 100%;
+	overflow: hidden;
+	font-size: 0.9em;
+	line-height: 1.35;
+	opacity: 0.78;
+	-webkit-box-orient: vertical;
+	-webkit-line-clamp: 2;
 }
 
 .wp-native-vector-search-box__score {

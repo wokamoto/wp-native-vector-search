@@ -272,8 +272,10 @@ Post result:
   "type": "post",
   "post_id": 1,
   "title": "WordPress Security",
+  "description": "A practical guide to hardening WordPress login, permissions, and plugin updates.",
   "url": "https://example.com/wordpress-security",
   "post_type": "post",
+  "thumbnail_url": "https://example.com/wp-content/uploads/wordpress-security-150x150.png",
   "score": 0.91
 }
 ```
@@ -286,6 +288,7 @@ Media result:
   "attachment_id": 10,
   "post_id": 10,
   "title": "cms-comparison",
+  "description": "CMS comparison diagram with WordPress and headless CMS options.",
   "url": "https://example.com/wp-content/uploads/cms-comparison.png",
   "post_type": "attachment",
   "thumbnail_url": "https://example.com/wp-content/uploads/cms-comparison-150x150.png",

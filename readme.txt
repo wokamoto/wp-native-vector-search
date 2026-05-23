@@ -4,7 +4,7 @@ Tags: search, semantic search, vector search, openai, media
 Requires at least: 6.5
 Tested up to: 6.9
 Requires PHP: 8.0
-Stable tag: 0.1.0
+Stable tag: 0.1.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -190,8 +190,10 @@ Post results include:
 * `type: post`
 * `post_id`
 * `title`
+* `description`
 * `url`
 * `post_type`
+* `thumbnail_url`
 * `score`
 
 Results below the configured minimum score are omitted.
@@ -202,6 +204,7 @@ Media results include:
 * `attachment_id`
 * `post_id`
 * `title`
+* `description`
 * `url`
 * `post_type`
 * `thumbnail_url`
@@ -232,6 +235,11 @@ This version is intended for local development and experimentation. Uploaded or 
 
 == Changelog ==
 
+= 0.1.1 =
+
+* Added descriptions to post and media search results.
+* Added featured image thumbnails to post and page search results.
+
 = 0.1.0 =
 
 * Initial plugin scaffold.
@@ -251,6 +259,10 @@ This version is intended for local development and experimentation. Uploaded or 
 * Added optional standard WordPress search form replacement.
 
 == Upgrade Notice ==
+
+= 0.1.1 =
+
+Search results now include descriptions and post/page featured image thumbnails.
 
 = 0.1.0 =
 
