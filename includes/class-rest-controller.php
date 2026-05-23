@@ -115,6 +115,7 @@ final class REST_Controller {
 		$key       = 'wpnvs_rate_' . md5( $client_ip );
 		$count     = (int) get_transient( $key );
 
+		// Transients are not atomic; this is a best-effort guard against accidental overuse.
 		if ( $count >= self::RATE_LIMIT_MAX_REQUESTS ) {
 			return new \WP_Error(
 				'wp_native_vector_search_rate_limited',

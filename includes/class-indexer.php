@@ -205,6 +205,7 @@ final class Indexer {
 			return array( 'status' => 'deleted', 'reason' => 'empty_content' );
 		}
 
+		// Keep the original post hash format for existing embedding rows.
 		$content_hash = hash( 'sha256', $model . "\n" . $text );
 		$existing     = $this->database->get_by_post_and_model( $post_id, $model );
 
