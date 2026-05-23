@@ -4,7 +4,7 @@ Tags: search, semantic search, vector search, openai, media
 Requires at least: 6.5
 Tested up to: 6.9
 Requires PHP: 8.0
-Stable tag: 0.1.1
+Stable tag: 0.1.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -168,7 +168,7 @@ If an image description has not been generated yet, `index-media` generates it b
 
 = What does the REST API return? =
 
-The endpoint applies a simple IP-based rate limit to reduce accidental API overuse.
+The endpoint applies a simple IP-based rate limit and caches normalized query embeddings for five minutes to reduce accidental API overuse.
 
 Endpoint:
 
@@ -235,6 +235,10 @@ This version is intended for local development and experimentation. Uploaded or 
 
 == Changelog ==
 
+= 0.1.2 =
+
+* Added shared embedding text normalization and short-lived query embedding caching.
+
 = 0.1.1 =
 
 * Added descriptions to post and media search results.
@@ -259,6 +263,10 @@ This version is intended for local development and experimentation. Uploaded or 
 * Added optional standard WordPress search form replacement.
 
 == Upgrade Notice ==
+
+= 0.1.2 =
+
+Search query embeddings are normalized consistently with indexed content and cached briefly.
 
 = 0.1.1 =
 

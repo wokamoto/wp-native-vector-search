@@ -17,6 +17,8 @@ if ( ! defined( 'ABSPATH' ) ) {
  * Searches stored embeddings using cosine similarity.
  */
 final class Search_Service {
+	private const QUERY_EMBEDDING_CACHE_TTL = 300;
+
 	/**
 	 * Settings service.
 	 *
@@ -55,7 +57,7 @@ final class Search_Service {
 	 * @return array<int, array<string, mixed>>|WP_Error
 	 */
 	public function search( string $query, int $limit = 10 ) {
-		$query = trim( $query );
+		$query = Text_Normalizer::normalize_for_embedding( $query );
 		if ( '' === $query ) {
 			return new WP_Error( 'wp_native_vector_search_empty_query', __( 'Search query is required.', 'wp-native-vector-search' ), array( 'status' => 400 ) );
 		}
@@ -65,7 +67,7 @@ final class Search_Service {
 		$min_score             = (float) $this->settings->get( 'min_score' );
 		$keyword_boost_enabled = (bool) $this->settings->get( 'keyword_boost' );
 		$max_keyword_boost     = (float) $this->settings->get( 'max_keyword_boost' );
-		$query_embedding       = $this->openai_client->create_embedding( $query, $model );
+		$query_embedding       = $this->get_query_embedding( $query, $model );
 		if ( is_wp_error( $query_embedding ) ) {
 			return $query_embedding;
 		}
@@ -138,6 +140,31 @@ final class Search_Service {
 		}
 
 		return $results;
+	}
+
+	/**
+	 * Get a cached embedding for a normalized search query.
+	 *
+	 * @param string $query Normalized search query.
+	 * @param string $model Embedding model.
+	 * @return array<int, float>|WP_Error
+	 */
+	private function get_query_embedding( string $query, string $model ) {
+		$cache_key = 'wpnvs_qemb_' . hash( 'sha256', $model . "\n" . $query );
+		$cached    = get_transient( $cache_key );
+
+		if ( is_array( $cached ) ) {
+			return array_map( 'floatval', $cached );
+		}
+
+		$query_embedding = $this->openai_client->create_embedding( $query, $model );
+		if ( is_wp_error( $query_embedding ) ) {
+			return $query_embedding;
+		}
+
+		set_transient( $cache_key, $query_embedding, self::QUERY_EMBEDDING_CACHE_TTL );
+
+		return $query_embedding;
 	}
 
 	/**
@@ -353,12 +380,10 @@ final class Search_Service {
 	 * @param string $text Input text.
 	 */
 	private function normalize_keyword_text( string $text ): string {
-		$text = wp_strip_all_tags( $text, true );
-		$text = html_entity_decode( $text, ENT_QUOTES | ENT_HTML5, get_bloginfo( 'charset' ) );
+		$text = Text_Normalizer::normalize_for_embedding( $text );
 		$text = function_exists( 'mb_strtolower' ) ? mb_strtolower( $text ) : strtolower( $text );
-		$text = preg_replace( '/\s+/u', ' ', $text );
 
-		return is_string( $text ) ? trim( $text ) : '';
+		return trim( $text );
 	}
 
 	/**

@@ -263,7 +263,7 @@ Request:
 }
 ```
 
-The endpoint applies a simple IP-based rate limit to reduce accidental API overuse.
+The endpoint applies a simple IP-based rate limit and caches normalized query embeddings for five minutes to reduce accidental API overuse.
 
 Post result:
 

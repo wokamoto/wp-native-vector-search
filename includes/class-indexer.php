@@ -410,11 +410,7 @@ final class Indexer {
 		);
 
 		$text = implode( "\n\n", array_filter( array_map( 'strval', $parts ) ) );
-		$text = strip_shortcodes( $text );
-		$text = wp_strip_all_tags( $text, true );
-		$text = html_entity_decode( $text, ENT_QUOTES | ENT_HTML5, get_bloginfo( 'charset' ) );
-		$text = preg_replace( '/\s+/u', ' ', $text );
-		$text = is_string( $text ) ? trim( $text ) : '';
+		$text = Text_Normalizer::normalize_for_embedding( $text );
 
 		$max_chars = (int) $this->settings->get( 'max_chars' );
 		if ( $max_chars > 0 && function_exists( 'mb_substr' ) ) {
@@ -443,10 +439,7 @@ final class Indexer {
 		);
 
 		$text = implode( "\n\n", array_filter( array_map( 'strval', $parts ) ) );
-		$text = wp_strip_all_tags( $text, true );
-		$text = html_entity_decode( $text, ENT_QUOTES | ENT_HTML5, get_bloginfo( 'charset' ) );
-		$text = preg_replace( '/\s+/u', ' ', $text );
-		$text = is_string( $text ) ? trim( $text ) : '';
+		$text = Text_Normalizer::normalize_for_embedding( $text );
 
 		$max_chars = (int) $this->settings->get( 'max_chars' );
 		if ( $max_chars > 0 && function_exists( 'mb_substr' ) ) {
