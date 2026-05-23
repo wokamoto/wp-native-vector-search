@@ -125,7 +125,7 @@ embedding 対象:
 - `image/webp`
 - `image/gif`
 
-画像のアップロードまたは編集時に、WordPress cron イベントを予約します。cron 実行時にローカル画像ファイルを base64 data URL として OpenAI Responses API に送り、vision model で日本語の説明文を生成します。
+画像のアップロードまたは編集時に、WordPress cron イベントを予約します。cron 実行時にローカル画像ファイルを base64 data URL として OpenAI Responses API に送り、vision model で日本語の説明文を生成します。説明文が利用可能になると、別の cron イベントでメディア embedding を保存します。
 
 説明文には次の観点を含めます。
 

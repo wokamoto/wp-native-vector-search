@@ -23,6 +23,7 @@ final class Media_Describer {
 	public const META_FILE_HASH    = '_wp_native_vector_search_image_description_hash';
 	public const META_GENERATED_AT = '_wp_native_vector_search_image_description_generated_at';
 	public const META_ERROR        = '_wp_native_vector_search_image_description_error';
+	public const ACTION_DESCRIPTION_READY = 'wp_native_vector_search_attachment_description_ready';
 
 	private const CRON_HOOK = 'wp_native_vector_search_describe_attachment';
 
@@ -89,6 +90,14 @@ final class Media_Describer {
 		$result = $this->describe_attachment( $attachment_id );
 		if ( is_wp_error( $result ) ) {
 			update_post_meta( $attachment_id, self::META_ERROR, $result->get_error_message() );
+			return;
+		}
+
+		$status = (string) ( $result['status'] ?? '' );
+		$reason = (string) ( $result['reason'] ?? '' );
+
+		if ( 'described' === $status || ( 'skipped' === $status && 'unchanged' === $reason ) ) {
+			do_action( self::ACTION_DESCRIPTION_READY, $attachment_id );
 		}
 	}
 

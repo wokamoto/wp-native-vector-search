@@ -125,7 +125,7 @@ Supported MIME types:
 - `image/webp`
 - `image/gif`
 
-When an image is uploaded or edited, the plugin schedules a WordPress cron event that sends the local image file to OpenAI Responses API as a base64 data URL and asks the vision model to generate a Japanese description.
+When an image is uploaded or edited, the plugin schedules a WordPress cron event that sends the local image file to OpenAI Responses API as a base64 data URL and asks the vision model to generate a Japanese description. Once the description is available, a second cron event stores the media embedding.
 
 The generated description includes:
 

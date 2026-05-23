@@ -134,7 +134,7 @@ wp vector-search run-queue
 
 Publish and save requests only schedule a WordPress cron event. OpenAI API calls are not made during the editor save request.
 
-Uploaded or edited images also schedule WordPress cron events for image description generation.
+Uploaded or edited images also schedule WordPress cron events for image description generation. Once the description is available, another cron event stores the media embedding.
 
 = How do I generate descriptions for existing media? =
 

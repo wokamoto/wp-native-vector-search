@@ -19,6 +19,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 final class Indexer {
 	private const CRON_HOOK = 'wp_native_vector_search_index_post';
+	private const MEDIA_CRON_HOOK = 'wp_native_vector_search_index_media';
 	private const HASH_PREFIX_MEDIA = 'media';
 
 	/**
@@ -27,6 +28,13 @@ final class Indexer {
 	 * @var array<int, bool>
 	 */
 	private array $queued_post_ids = array();
+
+	/**
+	 * Attachment IDs queued during the current request.
+	 *
+	 * @var array<int, bool>
+	 */
+	private array $queued_attachment_ids = array();
 
 	/**
 	 * Settings service.
@@ -67,6 +75,8 @@ final class Indexer {
 		add_action( 'deleted_post', array( $this, 'handle_deleted_post' ) );
 		add_action( 'delete_attachment', array( $this, 'handle_deleted_post' ) );
 		add_action( self::CRON_HOOK, array( $this, 'run_queued_post_index' ) );
+		add_action( Media_Describer::ACTION_DESCRIPTION_READY, array( $this, 'queue_media_index' ) );
+		add_action( self::MEDIA_CRON_HOOK, array( $this, 'run_queued_media_index' ) );
 	}
 
 	/**
@@ -113,6 +123,7 @@ final class Indexer {
 	public function handle_deleted_post( int $post_id ): void {
 		$this->database->delete_by_post_id( $post_id );
 		$this->clear_queued_post_index( $post_id );
+		$this->clear_queued_media_index( $post_id );
 	}
 
 	/**
@@ -161,6 +172,42 @@ final class Indexer {
 	}
 
 	/**
+	 * Queue media indexing after an image description is available.
+	 *
+	 * @param int $attachment_id Attachment ID.
+	 */
+	public function queue_media_index( int $attachment_id ): void {
+		$attachment = get_post( $attachment_id );
+		if ( ! $attachment instanceof WP_Post || 'attachment' !== $attachment->post_type ) {
+			return;
+		}
+
+		if ( isset( $this->queued_attachment_ids[ $attachment_id ] ) ) {
+			return;
+		}
+
+		$this->queued_attachment_ids[ $attachment_id ] = true;
+
+		if ( wp_next_scheduled( self::MEDIA_CRON_HOOK, array( $attachment_id ) ) ) {
+			return;
+		}
+
+		wp_schedule_single_event( time() + 5, self::MEDIA_CRON_HOOK, array( $attachment_id ) );
+	}
+
+	/**
+	 * Run a queued media indexing job.
+	 *
+	 * @param int $attachment_id Attachment ID.
+	 */
+	public function run_queued_media_index( int $attachment_id ): void {
+		$result = $this->index_media( $attachment_id );
+		if ( is_wp_error( $result ) ) {
+			error_log( sprintf( 'WP Native Vector Search media index failed for %d: %s', $attachment_id, $result->get_error_message() ) );
+		}
+	}
+
+	/**
 	 * Clear a pending post indexing job.
 	 *
 	 * @param int $post_id Post ID.
@@ -168,6 +215,16 @@ final class Indexer {
 	private function clear_queued_post_index( int $post_id ): void {
 		unset( $this->queued_post_ids[ $post_id ] );
 		wp_clear_scheduled_hook( self::CRON_HOOK, array( $post_id ) );
+	}
+
+	/**
+	 * Clear a pending media indexing job.
+	 *
+	 * @param int $attachment_id Attachment ID.
+	 */
+	private function clear_queued_media_index( int $attachment_id ): void {
+		unset( $this->queued_attachment_ids[ $attachment_id ] );
+		wp_clear_scheduled_hook( self::MEDIA_CRON_HOOK, array( $attachment_id ) );
 	}
 
 	/**
