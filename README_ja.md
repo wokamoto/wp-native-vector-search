@@ -125,7 +125,7 @@ embedding 対象:
 - `image/webp`
 - `image/gif`
 
-画像のアップロードまたは編集時に、ローカル画像ファイルを base64 data URL として OpenAI Responses API に送り、vision model で日本語の説明文を生成します。
+画像のアップロードまたは編集時に、WordPress cron イベントを予約します。cron 実行時にローカル画像ファイルを base64 data URL として OpenAI Responses API に送り、vision model で日本語の説明文を生成します。
 
 説明文には次の観点を含めます。
 
@@ -263,6 +263,8 @@ Request:
 }
 ```
 
+このエンドポイントには、意図しない API 利用量の増加を抑えるための簡易 IP ベース rate limit があります。
+
 投稿結果:
 
 ```json
@@ -370,8 +372,8 @@ Vector Search Box
 - 外部 Vector DB は使用しない
 - embedding は MySQL に JSON として保存する
 - 画像検索は直接画像 embedding ではなく、生成した説明文の embedding を使う
-- 初期実装では OpenAI API 呼び出しは同期処理
-- 大量の画像アップロードや index は時間と API 利用量を消費する
+- アップロードまたは編集された画像の説明文生成は WordPress cron で実行する。一方、WP-CLI のメディア index は現在のコマンド内で実行する
+- 大量の画像 index は時間と API 利用量を消費する
 
 ## アンインストール
 

@@ -17,6 +17,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 final class Settings {
 	public const OPTION_NAME = 'wp_native_vector_search_settings';
 
+	private const ALLOWED_EMBEDDING_MODELS = array(
+		'text-embedding-3-small',
+		'text-embedding-3-large',
+		'text-embedding-ada-002',
+	);
+
 	/**
 	 * Register Settings API hooks.
 	 */
@@ -90,10 +96,10 @@ final class Settings {
 			: $current['api_key'];
 
 		$settings['embedding_model'] = isset( $input['embedding_model'] )
-			? sanitize_key( wp_unslash( (string) $input['embedding_model'] ) )
+			? sanitize_text_field( wp_unslash( (string) $input['embedding_model'] ) )
 			: $current['embedding_model'];
 
-		if ( '' === $settings['embedding_model'] ) {
+		if ( ! in_array( $settings['embedding_model'], self::ALLOWED_EMBEDDING_MODELS, true ) ) {
 			$settings['embedding_model'] = $defaults['embedding_model'];
 		}
 

@@ -125,7 +125,7 @@ Supported MIME types:
 - `image/webp`
 - `image/gif`
 
-When an image is uploaded or edited, the plugin sends the local image file to OpenAI Responses API as a base64 data URL and asks the vision model to generate a Japanese description.
+When an image is uploaded or edited, the plugin schedules a WordPress cron event that sends the local image file to OpenAI Responses API as a base64 data URL and asks the vision model to generate a Japanese description.
 
 The generated description includes:
 
@@ -263,6 +263,8 @@ Request:
 }
 ```
 
+The endpoint applies a simple IP-based rate limit to reduce accidental API overuse.
+
 Post result:
 
 ```json
@@ -370,8 +372,8 @@ Important tradeoffs:
 - No external vector database is used
 - Embeddings are stored as JSON in MySQL
 - Image search uses generated text descriptions, not direct image embeddings
-- OpenAI API calls happen synchronously in the initial implementation
-- Uploading or indexing many images can take time and consume API quota
+- Uploaded or edited images are described through WordPress cron, while WP-CLI media indexing still runs in the current command
+- Indexing many images can take time and consume API quota
 
 ## Uninstall
 

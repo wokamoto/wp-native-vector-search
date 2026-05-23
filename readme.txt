@@ -134,6 +134,8 @@ wp vector-search run-queue
 
 Publish and save requests only schedule a WordPress cron event. OpenAI API calls are not made during the editor save request.
 
+Uploaded or edited images also schedule WordPress cron events for image description generation.
+
 = How do I generate descriptions for existing media? =
 
 Use WP-CLI:
@@ -165,6 +167,8 @@ Options:
 If an image description has not been generated yet, `index-media` generates it before creating the embedding.
 
 = What does the REST API return? =
+
+The endpoint applies a simple IP-based rate limit to reduce accidental API overuse.
 
 Endpoint:
 
@@ -218,7 +222,7 @@ When enabled, the plugin replaces forms rendered by `get_search_form()` and Core
 
 = Is this production-ready? =
 
-This version is intended for local development and experimentation. It performs OpenAI API calls synchronously and calculates similarity in PHP. Large media libraries or production traffic should add background queues, batching, caching, and more selective retrieval.
+This version is intended for local development and experimentation. Uploaded or edited images are described through WordPress cron, while WP-CLI media indexing still runs in the current command. Large media libraries or production traffic should add batching, caching, and more selective retrieval.
 
 == Screenshots ==
 

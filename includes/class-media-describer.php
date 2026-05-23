@@ -24,6 +24,8 @@ final class Media_Describer {
 	public const META_GENERATED_AT = '_wp_native_vector_search_image_description_generated_at';
 	public const META_ERROR        = '_wp_native_vector_search_image_description_error';
 
+	private const CRON_HOOK = 'wp_native_vector_search_describe_attachment';
+
 	private const SUPPORTED_MIME_TYPES = array(
 		'image/jpeg',
 		'image/png',
@@ -59,18 +61,31 @@ final class Media_Describer {
 	 * Register attachment hooks.
 	 */
 	public function register(): void {
-		add_action( 'add_attachment', array( $this, 'handle_attachment_change' ) );
-		add_action( 'edit_attachment', array( $this, 'handle_attachment_change' ) );
+		add_action( 'edit_attachment', array( $this, 'queue_description_generation' ) );
 		add_filter( 'wp_update_attachment_metadata', array( $this, 'handle_attachment_metadata_update' ), 20, 2 );
+		add_action( self::CRON_HOOK, array( $this, 'run_queued_description' ) );
 		add_action( 'delete_attachment', array( $this, 'delete_description_meta' ) );
 	}
 
 	/**
-	 * Generate a description when an image attachment is added or edited.
+	 * Queue image description generation outside the upload/edit request.
 	 *
 	 * @param int $attachment_id Attachment ID.
 	 */
-	public function handle_attachment_change( int $attachment_id ): void {
+	public function queue_description_generation( int $attachment_id ): void {
+		if ( wp_next_scheduled( self::CRON_HOOK, array( $attachment_id ) ) ) {
+			return;
+		}
+
+		wp_schedule_single_event( time() + 5, self::CRON_HOOK, array( $attachment_id ) );
+	}
+
+	/**
+	 * Run a queued image description generation job.
+	 *
+	 * @param int $attachment_id Attachment ID.
+	 */
+	public function run_queued_description( int $attachment_id ): void {
 		$result = $this->describe_attachment( $attachment_id );
 		if ( is_wp_error( $result ) ) {
 			update_post_meta( $attachment_id, self::META_ERROR, $result->get_error_message() );
@@ -85,7 +100,7 @@ final class Media_Describer {
 	 * @return mixed
 	 */
 	public function handle_attachment_metadata_update( $metadata, int $attachment_id ) {
-		$this->handle_attachment_change( $attachment_id );
+		$this->queue_description_generation( $attachment_id );
 
 		return $metadata;
 	}
@@ -146,7 +161,7 @@ final class Media_Describer {
 		update_post_meta( $attachment_id, self::META_DESCRIPTION, $description );
 		update_post_meta( $attachment_id, self::META_MODEL, $vision_model );
 		update_post_meta( $attachment_id, self::META_FILE_HASH, $file_hash );
-		update_post_meta( $attachment_id, self::META_GENERATED_AT, current_time( 'mysql' ) );
+		update_post_meta( $attachment_id, self::META_GENERATED_AT, current_time( 'mysql', true ) );
 		delete_post_meta( $attachment_id, self::META_ERROR );
 
 		return array(
@@ -161,6 +176,7 @@ final class Media_Describer {
 	 * @param int $attachment_id Attachment ID.
 	 */
 	public function delete_description_meta( int $attachment_id ): void {
+		wp_clear_scheduled_hook( self::CRON_HOOK, array( $attachment_id ) );
 		delete_post_meta( $attachment_id, self::META_DESCRIPTION );
 		delete_post_meta( $attachment_id, self::META_MODEL );
 		delete_post_meta( $attachment_id, self::META_FILE_HASH );

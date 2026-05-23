@@ -20,6 +20,8 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 final class REST_Controller {
 	private const NAMESPACE = 'vector-search/v1';
+	private const RATE_LIMIT_MAX_REQUESTS = 30;
+	private const RATE_LIMIT_WINDOW = 60;
 
 	/**
 	 * Search service.
@@ -82,6 +84,11 @@ final class REST_Controller {
 	 * @return WP_REST_Response|\WP_Error
 	 */
 	public function search( WP_REST_Request $request ) {
+		$rate_limit = $this->check_rate_limit();
+		if ( is_wp_error( $rate_limit ) ) {
+			return $rate_limit;
+		}
+
 		$results = $this->search_service->search(
 			(string) $request->get_param( 'query' ),
 			(int) $request->get_param( 'limit' )
@@ -96,5 +103,39 @@ final class REST_Controller {
 				'results' => $results,
 			)
 		);
+	}
+
+	/**
+	 * Apply a simple IP-based request rate limit.
+	 *
+	 * @return true|\WP_Error
+	 */
+	private function check_rate_limit() {
+		$client_ip = $this->get_client_ip();
+		$key       = 'wpnvs_rate_' . md5( $client_ip );
+		$count     = (int) get_transient( $key );
+
+		if ( $count >= self::RATE_LIMIT_MAX_REQUESTS ) {
+			return new \WP_Error(
+				'wp_native_vector_search_rate_limited',
+				__( 'Too many search requests. Please try again later.', 'wp-native-vector-search' ),
+				array( 'status' => 429 )
+			);
+		}
+
+		set_transient( $key, $count + 1, self::RATE_LIMIT_WINDOW );
+
+		return true;
+	}
+
+	/**
+	 * Get the client IP address used for rate limiting.
+	 */
+	private function get_client_ip(): string {
+		if ( empty( $_SERVER['REMOTE_ADDR'] ) ) {
+			return 'unknown';
+		}
+
+		return sanitize_text_field( wp_unslash( (string) $_SERVER['REMOTE_ADDR'] ) );
 	}
 }

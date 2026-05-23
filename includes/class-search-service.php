@@ -105,7 +105,8 @@ final class Search_Service {
 
 			$matches[] = array(
 				'post_id'       => (int) $row['post_id'],
-				'post_type'     => (string) $row['post_type'],
+				'post'          => $post,
+				'post_type'     => $post->post_type,
 				'score'         => $score,
 				'vector_score'  => $vector_score,
 				'keyword_score' => $keyword_score,
@@ -123,8 +124,8 @@ final class Search_Service {
 		$results = array();
 
 		foreach ( $matches as $match ) {
-			$post = get_post( (int) $match['post_id'] );
-			if ( ! $post ) {
+			$post = $match['post'] ?? null;
+			if ( ! $post instanceof \WP_Post ) {
 				continue;
 			}
 

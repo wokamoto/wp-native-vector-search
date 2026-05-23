@@ -19,6 +19,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 final class Indexer {
 	private const CRON_HOOK = 'wp_native_vector_search_index_post';
+	private const HASH_PREFIX_MEDIA = 'media';
 
 	/**
 	 * Post IDs queued during the current request.
@@ -93,9 +94,13 @@ final class Indexer {
 	 * @param WP_Post $post Post object.
 	 */
 	public function handle_status_transition( string $new_status, string $old_status, WP_Post $post ): void {
-		unset( $new_status, $old_status );
+		if ( $new_status === $old_status ) {
+			return;
+		}
 
-		if ( $this->should_auto_index() ) {
+		$is_publish_transition = 'publish' === $new_status || 'publish' === $old_status;
+
+		if ( $is_publish_transition && $this->should_auto_index() ) {
 			$this->queue_post_index( (int) $post->ID );
 		}
 	}
@@ -279,7 +284,7 @@ final class Indexer {
 		$model = (string) $this->settings->get( 'embedding_model' );
 		$text  = $this->build_media_embedding_text( $attachment, $description );
 
-		$content_hash = hash( 'sha256', $model . "\nmedia\n" . $text );
+		$content_hash = hash( 'sha256', $model . "\n" . self::HASH_PREFIX_MEDIA . "\n" . $text );
 		$existing     = $this->database->get_by_post_and_model( $attachment_id, $model );
 
 		if ( ! $force && $existing && $content_hash === (string) $existing['content_hash'] ) {

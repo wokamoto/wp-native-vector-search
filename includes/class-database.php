@@ -64,7 +64,7 @@ final class Database {
 		global $wpdb;
 
 		$table_name = $this->table_name();
-		$now        = current_time( 'mysql' );
+		$now        = current_time( 'mysql', true );
 		$existing   = $this->get_by_post_and_model( (int) $data['post_id'], (string) $data['embedding_model'] );
 
 		$row = array(
@@ -160,7 +160,7 @@ final class Database {
 			array(
 				'post_type'   => $post_type,
 				'post_status' => $post_status,
-				'updated_at'  => current_time( 'mysql' ),
+				'updated_at'  => current_time( 'mysql', true ),
 			),
 			array(
 				'post_id'         => $post_id,
@@ -191,7 +191,7 @@ final class Database {
 		$placeholders = implode( ',', array_fill( 0, count( $post_types ), '%s' ) );
 		$params       = array_merge( array( $model ), $post_types );
 
-		$sql = 'SELECT post_id, post_type, embedding, dimensions FROM ' . $this->table_name()
+		$sql = 'SELECT post_id, embedding FROM ' . $this->table_name()
 			. " WHERE embedding_model = %s AND post_type IN ({$placeholders})";
 
 		$rows = $wpdb->get_results( $wpdb->prepare( $sql, $params ), ARRAY_A );
