@@ -53,3 +53,6 @@ credentials*
 
 # Local generated assets
 /assets/generated/
+
+# Local documents
+/documents/**

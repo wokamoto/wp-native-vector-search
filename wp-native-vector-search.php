@@ -5,7 +5,7 @@
  * Version: 0.1.0
  * Requires at least: 6.5
  * Requires PHP: 8.0
- * Author: Local Development
+ * Author: wokamoto
  * Text Domain: wp-native-vector-search
  *
  * @package WP_Native_Vector_Search
