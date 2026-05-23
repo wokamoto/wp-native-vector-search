@@ -1,0 +1,56 @@
+.wp-native-vector-search-box {
+	max-width: 44rem;
+}
+
+.wp-native-vector-search-box__form {
+	display: flex;
+	gap: 0.5rem;
+	align-items: stretch;
+}
+
+.wp-native-vector-search-box__input {
+	flex: 1 1 auto;
+	min-width: 0;
+	padding: 0.7rem 0.8rem;
+	border: 1px solid currentColor;
+	border-radius: 4px;
+	font: inherit;
+}
+
+.wp-native-vector-search-box__button {
+	flex: 0 0 auto;
+	padding: 0.7rem 1rem;
+	border: 1px solid currentColor;
+	border-radius: 4px;
+	background: currentColor;
+	color: Canvas;
+	font: inherit;
+	cursor: pointer;
+}
+
+.wp-native-vector-search-box__status {
+	min-height: 1.5rem;
+	margin-top: 0.75rem;
+}
+
+.wp-native-vector-search-box__results {
+	margin-top: 0.5rem;
+	padding-left: 1.5rem;
+}
+
+.wp-native-vector-search-box__results li {
+	margin-bottom: 0.5rem;
+}
+
+.wp-native-vector-search-box__score {
+	display: inline-block;
+	margin-left: 0.5rem;
+	font-size: 0.85em;
+	opacity: 0.72;
+}
+
+@media (max-width: 480px) {
+	.wp-native-vector-search-box__form {
+		flex-direction: column;
+	}
+}

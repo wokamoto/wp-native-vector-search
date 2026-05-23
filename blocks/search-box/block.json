@@ -1,0 +1,19 @@
+{
+	"$schema": "https://schemas.wp.org/trunk/block.json",
+	"apiVersion": 3,
+	"name": "wp-native-vector-search/search-box",
+	"version": "0.1.0",
+	"title": "Vector Search Box",
+	"category": "widgets",
+	"icon": "search",
+	"description": "Search posts using stored vector embeddings.",
+	"textdomain": "wp-native-vector-search",
+	"supports": {
+		"html": false
+	},
+	"editorScript": "file:./editor.js",
+	"viewScript": "file:./view.js",
+	"style": "file:./style.css",
+	"editorStyle": "file:./editor.css",
+	"render": "file:./render.php"
+}
