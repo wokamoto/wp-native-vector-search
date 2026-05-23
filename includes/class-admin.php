@@ -81,6 +81,7 @@ final class Admin {
 		add_settings_field( 'keyword_boost', __( 'Keyword Boost', 'wp-native-vector-search' ), array( $this, 'render_keyword_boost_field' ), 'wp-native-vector-search', 'wp_native_vector_search_main' );
 		add_settings_field( 'max_keyword_boost', __( 'Maximum Keyword Boost', 'wp-native-vector-search' ), array( $this, 'render_max_keyword_boost_field' ), 'wp-native-vector-search', 'wp_native_vector_search_main' );
 		add_settings_field( 'auto_index', __( 'Automatic Indexing', 'wp-native-vector-search' ), array( $this, 'render_auto_index_field' ), 'wp-native-vector-search', 'wp_native_vector_search_main' );
+		add_settings_field( 'include_attachments', __( 'Media Search', 'wp-native-vector-search' ), array( $this, 'render_include_attachments_field' ), 'wp-native-vector-search', 'wp_native_vector_search_main' );
 		add_settings_field( 'replace_search', __( 'Replace WordPress Search', 'wp-native-vector-search' ), array( $this, 'render_replace_search_field' ), 'wp-native-vector-search', 'wp_native_vector_search_main' );
 	}
 
@@ -270,6 +271,23 @@ final class Admin {
 				<?php checked( (bool) $this->settings->get( 'auto_index' ) ); ?>
 			/>
 			<?php esc_html_e( 'Generate embeddings when configured posts are saved or their status changes.', 'wp-native-vector-search' ); ?>
+		</label>
+		<?php
+	}
+
+	/**
+	 * Render include attachments field.
+	 */
+	public function render_include_attachments_field(): void {
+		?>
+		<label>
+			<input
+				type="checkbox"
+				name="<?php echo esc_attr( Settings::OPTION_NAME ); ?>[include_attachments]"
+				value="1"
+				<?php checked( (bool) $this->settings->get( 'include_attachments' ) ); ?>
+			/>
+			<?php esc_html_e( 'Include image media embeddings in search results.', 'wp-native-vector-search' ); ?>
 		</label>
 		<?php
 	}

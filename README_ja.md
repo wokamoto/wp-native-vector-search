@@ -50,6 +50,7 @@ WP Native Vector Search は、OpenAI の embedding を WordPress のデータベ
 - embedding 入力の最大文字数
 - 最小 similarity score
 - 保存・status 変更時の自動 index
+- メディア検索の有効化
 - WordPress 標準検索フォームの vector search 置換
 
 API Key は定数でも指定できます。
@@ -89,7 +90,7 @@ embedding は JSON 配列として保存します。
 - `post_type`: `attachment`
 - `post_status`: attachment の現在の status
 
-投稿 embedding は投稿 status にかかわらず保存します。検索時に WordPress 上の現在の status を確認し、公開検索の対象になる投稿だけを返します。メディア embedding は attachment の status にかかわらず検索対象になります。
+投稿 embedding は投稿 status にかかわらず保存します。検索時に WordPress 上の現在の status を確認し、公開検索の対象になる投稿だけを返します。メディア検索が有効な場合、メディア embedding は attachment の status にかかわらず検索対象になります。
 
 ## 投稿の index
 
@@ -111,7 +112,7 @@ embedding 対象:
 
 設定で選択された投稿タイプは status にかかわらず index します。非公開の投稿も vector テーブルには残り、検索時に現在の status が検索対象外なら除外されます。
 
-メディア embedding は attachment の status や親投稿の status にかかわらず保存・検索対象になります。
+メディア embedding は attachment の status や親投稿の status にかかわらず保存します。検索結果にメディア embedding を含めるかどうかは設定画面で切り替えます。
 
 ## 画像説明文生成
 

@@ -16,7 +16,7 @@ WP Native Vector Search stores OpenAI embeddings in a custom WordPress database 
 
 The plugin does not require an external vector database. Embeddings are stored in MySQL as JSON arrays and cosine similarity is calculated in PHP.
 
-Post embeddings are stored regardless of post status. Search checks the current WordPress status at query time and only returns publicly searchable posts. Media embeddings are searchable regardless of attachment status.
+Post embeddings are stored regardless of post status. Search checks the current WordPress status at query time and only returns publicly searchable posts. Media embeddings are searchable regardless of attachment status when media search is enabled.
 
 = Main features =
 
@@ -49,7 +49,7 @@ The generated description includes:
 
 This enables natural-language searches such as "CMS comparison illustration", "blue logo", or "WordPress admin screenshot".
 
-Media is searchable regardless of attachment status or parent post status.
+Media is searchable regardless of attachment status or parent post status when media search is enabled.
 
 == Installation ==
 
@@ -57,7 +57,7 @@ Media is searchable regardless of attachment status or parent post status.
 2. Activate `WP Native Vector Search` from the Plugins screen.
 3. Open `Settings > Vector Search`.
 4. Enter an OpenAI API key.
-5. Configure the embedding model, vision model, target post types, and automatic indexing.
+5. Configure the embedding model, vision model, target post types, media search, and automatic indexing.
 6. Use WP-CLI to index existing content.
 
 The API key can also be provided as a PHP constant:

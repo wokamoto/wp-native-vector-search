@@ -48,6 +48,7 @@ final class Settings {
 			'keyword_boost'   => true,
 			'max_keyword_boost' => 0.2,
 			'auto_index'      => true,
+			'include_attachments' => true,
 			'replace_search'  => false,
 			'post_types'      => array( 'post' ),
 		);
@@ -118,6 +119,7 @@ final class Settings {
 			: (float) $current['max_keyword_boost'];
 
 		$settings['auto_index'] = ! empty( $input['auto_index'] );
+		$settings['include_attachments'] = ! empty( $input['include_attachments'] );
 		$settings['replace_search'] = ! empty( $input['replace_search'] );
 
 		$allowed_post_types = $this->get_available_post_types();

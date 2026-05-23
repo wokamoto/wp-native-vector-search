@@ -50,6 +50,7 @@ Available settings:
 - Maximum characters for embedding input
 - Minimum similarity score
 - Automatic indexing on save/status change
+- Media search inclusion
 - Replace standard WordPress search forms with vector search
 
 The API key can also be provided with a constant:
@@ -89,7 +90,7 @@ For media search, image attachment embeddings are stored in the same table:
 - `post_type`: `attachment`
 - `post_status`: the attachment's current status
 
-Post embeddings are stored regardless of post status. Search checks the current WordPress post status at query time and only returns publicly searchable posts. Media embeddings are searchable regardless of attachment status.
+Post embeddings are stored regardless of post status. Search checks the current WordPress post status at query time and only returns publicly searchable posts. Media embeddings are searchable regardless of attachment status when media search is enabled.
 
 ## Post Indexing
 
@@ -111,7 +112,7 @@ Only configured post types are indexed.
 
 Configured post types are indexed regardless of status. Non-published posts remain in the vector table, but are excluded from search until their current status is searchable.
 
-Media embeddings are stored and searched regardless of attachment status or parent post status.
+Media embeddings are stored regardless of attachment status or parent post status. The settings screen controls whether media embeddings are included in search results.
 
 ## Image Description Generation
 

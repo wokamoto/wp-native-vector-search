@@ -70,7 +70,11 @@ final class Search_Service {
 			return $query_embedding;
 		}
 
-		$post_types = array_values( array_unique( array_merge( (array) $this->settings->get( 'post_types' ), array( 'attachment' ) ) ) );
+		$post_types = (array) $this->settings->get( 'post_types' );
+		if ( (bool) $this->settings->get( 'include_attachments' ) ) {
+			$post_types[] = 'attachment';
+		}
+		$post_types = array_values( array_unique( $post_types ) );
 		$rows       = $this->database->get_candidate_embeddings( $model, $post_types );
 		$matches    = array();
 
