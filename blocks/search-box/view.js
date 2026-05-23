@@ -32,13 +32,27 @@
 		items.forEach( function ( item ) {
 			var li = document.createElement( 'li' );
 			var link = document.createElement( 'a' );
+			var title = document.createElement( 'span' );
 			var score = document.createElement( 'span' );
 
 			link.href = item.url;
-			link.textContent = item.title || String( item.post_id );
+			link.className = 'wp-native-vector-search-box__result-link';
+			title.className = 'wp-native-vector-search-box__result-title';
+			title.textContent = item.title || String( item.post_id );
 			score.className = 'wp-native-vector-search-box__score';
 			score.textContent = Number( item.score ).toFixed( 3 );
 
+			if ( item.thumbnail_url ) {
+				var thumbnail = document.createElement( 'img' );
+				thumbnail.className = 'wp-native-vector-search-box__thumbnail';
+				thumbnail.src = item.thumbnail_url;
+				thumbnail.alt = item.title || '';
+				thumbnail.loading = 'lazy';
+				thumbnail.decoding = 'async';
+				link.appendChild( thumbnail );
+			}
+
+			link.appendChild( title );
 			li.appendChild( link );
 			li.appendChild( score );
 			results.appendChild( li );

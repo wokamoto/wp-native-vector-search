@@ -311,7 +311,7 @@ The block provides:
 - Search input
 - REST API request
 - Loading status
-- Search result display
+- Search result display with media thumbnails
 
 ## Standard Search Replacement
 
