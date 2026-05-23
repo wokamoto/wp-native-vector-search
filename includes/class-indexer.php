@@ -82,12 +82,6 @@ final class Indexer {
 			return;
 		}
 
-		if ( 'publish' !== $post->post_status ) {
-			$this->database->delete_by_post_id( $post_id );
-			$this->clear_queued_post_index( $post_id );
-			return;
-		}
-
 		$this->queue_post_index( $post_id );
 	}
 
@@ -99,13 +93,7 @@ final class Indexer {
 	 * @param WP_Post $post Post object.
 	 */
 	public function handle_status_transition( string $new_status, string $old_status, WP_Post $post ): void {
-		unset( $old_status );
-
-		if ( 'publish' !== $new_status ) {
-			$this->database->delete_by_post_id( (int) $post->ID );
-			$this->clear_queued_post_index( (int) $post->ID );
-			return;
-		}
+		unset( $new_status, $old_status );
 
 		if ( $this->should_auto_index() ) {
 			$this->queue_post_index( (int) $post->ID );
@@ -123,7 +111,7 @@ final class Indexer {
 	}
 
 	/**
-	 * Queue post indexing outside the publish/save request.
+	 * Queue post indexing outside the save/status-change request.
 	 *
 	 * @param int $post_id Post ID.
 	 */
@@ -133,7 +121,7 @@ final class Indexer {
 		}
 
 		$post = get_post( $post_id );
-		if ( ! $post instanceof WP_Post || 'publish' !== $post->post_status ) {
+		if ( ! $post instanceof WP_Post ) {
 			return;
 		}
 
@@ -202,15 +190,6 @@ final class Indexer {
 
 		$model = (string) $this->settings->get( 'embedding_model' );
 
-		if ( 'publish' !== $post->post_status ) {
-			if ( $dry_run ) {
-				return array( 'status' => 'would_delete', 'reason' => 'not_published' );
-			}
-
-			$this->database->delete_by_post_id( $post_id );
-			return array( 'status' => 'deleted', 'reason' => 'not_published' );
-		}
-
 		$text = $this->build_embedding_text( $post );
 		if ( '' === $text ) {
 			if ( $dry_run ) {
@@ -225,6 +204,19 @@ final class Indexer {
 		$existing     = $this->database->get_by_post_and_model( $post_id, $model );
 
 		if ( ! $force && $existing && $content_hash === (string) $existing['content_hash'] ) {
+			if ( (string) $existing['post_type'] !== $post->post_type || (string) $existing['post_status'] !== $post->post_status ) {
+				if ( $dry_run ) {
+					return array( 'status' => 'would_update', 'reason' => 'post_state_changed' );
+				}
+
+				$updated = $this->database->update_embedding_post_state( $post_id, $model, $post->post_type, $post->post_status );
+				if ( ! $updated ) {
+					return new WP_Error( 'wp_native_vector_search_db_write_failed', __( 'Could not update the post embedding status.', 'wp-native-vector-search' ) );
+				}
+
+				return array( 'status' => 'updated', 'reason' => 'post_state_changed' );
+			}
+
 			return array( 'status' => 'skipped', 'reason' => 'unchanged' );
 		}
 
@@ -284,15 +276,6 @@ final class Indexer {
 			return array( 'status' => 'skipped', 'reason' => 'missing_description' );
 		}
 
-		if ( ! $this->is_media_publicly_searchable( $attachment ) ) {
-			if ( $dry_run ) {
-				return array( 'status' => 'would_delete', 'reason' => 'not_published' );
-			}
-
-			$this->database->delete_by_post_id( $attachment_id );
-			return array( 'status' => 'deleted', 'reason' => 'not_published' );
-		}
-
 		$model = (string) $this->settings->get( 'embedding_model' );
 		$text  = $this->build_media_embedding_text( $attachment, $description );
 
@@ -300,6 +283,19 @@ final class Indexer {
 		$existing     = $this->database->get_by_post_and_model( $attachment_id, $model );
 
 		if ( ! $force && $existing && $content_hash === (string) $existing['content_hash'] ) {
+			if ( (string) $existing['post_type'] !== 'attachment' || (string) $existing['post_status'] !== $attachment->post_status ) {
+				if ( $dry_run ) {
+					return array( 'status' => 'would_update', 'reason' => 'post_state_changed' );
+				}
+
+				$updated = $this->database->update_embedding_post_state( $attachment_id, $model, 'attachment', $attachment->post_status );
+				if ( ! $updated ) {
+					return new WP_Error( 'wp_native_vector_search_db_write_failed', __( 'Could not update the media embedding status.', 'wp-native-vector-search' ) );
+				}
+
+				return array( 'status' => 'updated', 'reason' => 'post_state_changed' );
+			}
+
 			return array( 'status' => 'skipped', 'reason' => 'unchanged' );
 		}
 
@@ -320,7 +316,7 @@ final class Indexer {
 			array(
 				'post_id'         => $attachment_id,
 				'post_type'       => 'attachment',
-				'post_status'     => 'publish',
+				'post_status'     => $attachment->post_status,
 				'content_hash'    => $content_hash,
 				'embedding'       => $embedding,
 				'embedding_model' => $model,
@@ -397,62 +393,6 @@ final class Indexer {
 		}
 
 		return $text;
-	}
-
-	/**
-	 * Determine whether an attachment should be searchable as public content.
-	 *
-	 * Attachments normally use the "inherit" status, so we treat them as public
-	 * when attached to a published parent post or referenced by a published post
-	 * in block/HTML content. Attachments with an explicit publish status are also allowed.
-	 *
-	 * @param WP_Post $attachment Attachment post.
-	 */
-	private function is_media_publicly_searchable( WP_Post $attachment ): bool {
-		if ( 'publish' === $attachment->post_status ) {
-			return true;
-		}
-
-		if ( $attachment->post_parent <= 0 ) {
-			return $this->is_attachment_referenced_by_published_post( (int) $attachment->ID );
-		}
-
-		$parent = get_post( (int) $attachment->post_parent );
-
-		if ( $parent instanceof WP_Post && 'publish' === $parent->post_status ) {
-			return true;
-		}
-
-		return $this->is_attachment_referenced_by_published_post( (int) $attachment->ID );
-	}
-
-	/**
-	 * Determine whether an attachment is referenced from published post content.
-	 *
-	 * @param int $attachment_id Attachment ID.
-	 */
-	private function is_attachment_referenced_by_published_post( int $attachment_id ): bool {
-		global $wpdb;
-
-		$attachment_class = 'wp-image-' . $attachment_id;
-		$block_id_pattern = '"id":' . $attachment_id;
-
-		$found = $wpdb->get_var(
-			$wpdb->prepare(
-				"SELECT ID FROM {$wpdb->posts}
-				WHERE post_status = 'publish'
-					AND post_type <> 'attachment'
-					AND (
-						post_content LIKE %s
-						OR post_content LIKE %s
-					)
-				LIMIT 1",
-				'%' . $wpdb->esc_like( $attachment_class ) . '%',
-				'%' . $wpdb->esc_like( $block_id_pattern ) . '%'
-			)
-		);
-
-		return null !== $found;
 	}
 
 	/**

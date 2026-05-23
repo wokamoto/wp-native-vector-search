@@ -60,21 +60,26 @@ final class Search_Service {
 			return new WP_Error( 'wp_native_vector_search_empty_query', __( 'Search query is required.', 'wp-native-vector-search' ), array( 'status' => 400 ) );
 		}
 
-		$limit           = max( 1, min( 50, $limit ) );
-		$model           = (string) $this->settings->get( 'embedding_model' );
-		$min_score       = (float) $this->settings->get( 'min_score' );
+		$limit                 = max( 1, min( 50, $limit ) );
+		$model                 = (string) $this->settings->get( 'embedding_model' );
+		$min_score             = (float) $this->settings->get( 'min_score' );
 		$keyword_boost_enabled = (bool) $this->settings->get( 'keyword_boost' );
 		$max_keyword_boost     = (float) $this->settings->get( 'max_keyword_boost' );
-		$query_embedding = $this->openai_client->create_embedding( $query, $model );
+		$query_embedding       = $this->openai_client->create_embedding( $query, $model );
 		if ( is_wp_error( $query_embedding ) ) {
 			return $query_embedding;
 		}
 
 		$post_types = array_values( array_unique( array_merge( (array) $this->settings->get( 'post_types' ), array( 'attachment' ) ) ) );
-		$rows       = $this->database->get_searchable_embeddings( $model, $post_types );
-		$matches = array();
+		$rows       = $this->database->get_candidate_embeddings( $model, $post_types );
+		$matches    = array();
 
 		foreach ( $rows as $row ) {
+			$post = get_post( (int) $row['post_id'] );
+			if ( ! $post || ! $this->is_post_searchable( $post ) ) {
+				continue;
+			}
+
 			$embedding = json_decode( (string) $row['embedding'], true );
 			if ( ! is_array( $embedding ) || count( $embedding ) !== count( $query_embedding ) ) {
 				continue;
@@ -82,11 +87,6 @@ final class Search_Service {
 
 			$vector_score = $this->cosine_similarity( $query_embedding, array_map( 'floatval', $embedding ) );
 			if ( null === $vector_score ) {
-				continue;
-			}
-
-			$post = get_post( (int) $row['post_id'] );
-			if ( ! $post ) {
 				continue;
 			}
 
@@ -126,10 +126,6 @@ final class Search_Service {
 
 			if ( 'attachment' === $post->post_type ) {
 				$results[] = $this->format_media_result( $post, $match );
-				continue;
-			}
-
-			if ( 'publish' !== $post->post_status ) {
 				continue;
 			}
 
@@ -248,6 +244,19 @@ final class Search_Service {
 		$text = html_entity_decode( $text, ENT_QUOTES | ENT_HTML5, get_bloginfo( 'charset' ) );
 
 		return $this->normalize_keyword_text( $text );
+	}
+
+	/**
+	 * Determine whether a stored row's current post should be included in search.
+	 *
+	 * @param \WP_Post $post Post object.
+	 */
+	private function is_post_searchable( \WP_Post $post ): bool {
+		if ( 'attachment' === $post->post_type ) {
+			return true;
+		}
+
+		return 'publish' === $post->post_status;
 	}
 
 	/**

@@ -8,7 +8,7 @@ It does not require an external vector database.
 
 - Generate text embeddings with OpenAI
 - Store vectors in a custom WordPress database table
-- Queue post indexing when published or updated
+- Queue post indexing when saved or when status changes
 - Generate natural-language descriptions for uploaded images
 - Store generated image descriptions in `wp_postmeta`
 - Index image descriptions for semantic media search
@@ -49,7 +49,7 @@ Available settings:
 - Target post types
 - Maximum characters for embedding input
 - Minimum similarity score
-- Automatic indexing on publish/update
+- Automatic indexing on save/status change
 - Replace standard WordPress search forms with vector search
 
 The API key can also be provided with a constant:
@@ -87,9 +87,9 @@ For media search, image attachment embeddings are stored in the same table:
 
 - `post_id`: attachment ID
 - `post_type`: `attachment`
-- `post_status`: `publish` when searchable
+- `post_status`: the attachment's current status
 
-Search only reads rows whose `post_status` is `publish`.
+Post embeddings are stored regardless of post status. Search checks the current WordPress post status at query time and only returns publicly searchable posts. Media embeddings are searchable regardless of attachment status.
 
 ## Post Indexing
 
@@ -109,9 +109,9 @@ The embedding input includes:
 
 Only configured post types are indexed.
 
-Non-published posts are removed from the vector table.
+Configured post types are indexed regardless of status. Non-published posts remain in the vector table, but are excluded from search until their current status is searchable.
 
-Media is searchable when it is explicitly published, attached to a published parent post, or referenced from published post content. Media used only by draft/private content is removed from the vector table during media indexing.
+Media embeddings are stored and searched regardless of attachment status or parent post status.
 
 ## Image Description Generation
 
@@ -177,7 +177,7 @@ wp vector-search index
 
 Options:
 
-- `--post_type=post`
+- `--post_type=post|attachment`
 - `--limit=100`
 - `--force`
 - `--dry-run`
@@ -187,6 +187,8 @@ Example:
 ```sh
 wp vector-search index --post_type=post --limit=100
 ```
+
+When `--post_type=attachment` is used, this command runs the media indexing flow. If an image description has not been generated yet, it is generated before creating the embedding.
 
 ### Run Queued Post Indexing
 

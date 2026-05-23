@@ -8,7 +8,7 @@ WP Native Vector Search は、OpenAI の embedding を WordPress のデータベ
 
 - OpenAI による text embedding 生成
 - 独自テーブルへの vector 保存
-- 投稿公開・更新時の index キュー登録
+- 投稿保存・status 変更時の index キュー登録
 - アップロード画像の自然言語説明文生成
 - 生成した画像説明文の `wp_postmeta` 保存
 - 画像説明文の embedding 化によるメディア検索
@@ -49,7 +49,7 @@ WP Native Vector Search は、OpenAI の embedding を WordPress のデータベ
 - 対象投稿タイプ
 - embedding 入力の最大文字数
 - 最小 similarity score
-- 公開・更新時の自動 index
+- 保存・status 変更時の自動 index
 - WordPress 標準検索フォームの vector search 置換
 
 API Key は定数でも指定できます。
@@ -87,9 +87,9 @@ embedding は JSON 配列として保存します。
 
 - `post_id`: attachment ID
 - `post_type`: `attachment`
-- `post_status`: 検索対象の場合は `publish`
+- `post_status`: attachment の現在の status
 
-検索時は `post_status` が `publish` の行だけを対象にします。
+投稿 embedding は投稿 status にかかわらず保存します。検索時に WordPress 上の現在の status を確認し、公開検索の対象になる投稿だけを返します。メディア embedding は attachment の status にかかわらず検索対象になります。
 
 ## 投稿の index
 
@@ -109,9 +109,9 @@ embedding 対象:
 
 対象になるのは、設定で選択された投稿タイプです。
 
-非公開になった投稿は vector テーブルから削除されます。
+設定で選択された投稿タイプは status にかかわらず index します。非公開の投稿も vector テーブルには残り、検索時に現在の status が検索対象外なら除外されます。
 
-メディアは、明示的に publish されているか、公開済みの親投稿に添付されているか、公開済み投稿本文から参照されている場合に検索対象になります。下書き・非公開コンテンツでのみ使われているメディアは、media index 時に vector テーブルから削除されます。
+メディア embedding は attachment の status や親投稿の status にかかわらず保存・検索対象になります。
 
 ## 画像説明文生成
 
@@ -177,7 +177,7 @@ wp vector-search index
 
 オプション:
 
-- `--post_type=post`
+- `--post_type=post|attachment`
 - `--limit=100`
 - `--force`
 - `--dry-run`
@@ -187,6 +187,8 @@ wp vector-search index
 ```sh
 wp vector-search index --post_type=post --limit=100
 ```
+
+`--post_type=attachment` を指定した場合は、メディア index の処理を実行します。画像説明文が未生成の場合、説明文を生成してから embedding を作成します。
 
 ### キュー済み投稿 index の実行
 

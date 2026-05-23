@@ -59,7 +59,7 @@ final class CLI_Command {
 	}
 
 	/**
-	 * Index existing published posts.
+	 * Index existing posts.
 	 *
 	 * ## OPTIONS
 	 *
@@ -78,6 +78,7 @@ final class CLI_Command {
 	 * ## EXAMPLES
 	 *
 	 *     wp vector-search index --post_type=post --limit=100
+	 *     wp vector-search index --post_type=attachment --limit=100
 	 *
 	 * @param array<int, string>   $args Positional arguments.
 	 * @param array<string, mixed> $assoc_args Associative arguments.
@@ -91,10 +92,15 @@ final class CLI_Command {
 		$force                = isset( $assoc_args['force'] );
 		$dry_run              = isset( $assoc_args['dry-run'] );
 
+		if ( 'attachment' === $post_type ) {
+			$this->index_media( array(), $assoc_args );
+			return;
+		}
+
 		$query = new WP_Query(
 			array(
 				'post_type'              => $post_type,
-				'post_status'            => 'publish',
+				'post_status'            => 'any',
 				'posts_per_page'         => max( 1, $limit ),
 				'fields'                 => 'ids',
 				'orderby'                => 'ID',
@@ -107,9 +113,11 @@ final class CLI_Command {
 
 		$counts = array(
 			'indexed'      => 0,
+			'updated'      => 0,
 			'skipped'      => 0,
 			'deleted'      => 0,
 			'would_delete' => 0,
+			'would_update' => 0,
 			'would_index'  => 0,
 			'failed'       => 0,
 		);
@@ -132,11 +140,13 @@ final class CLI_Command {
 
 		WP_CLI::success(
 			sprintf(
-				'Done. indexed=%d skipped=%d deleted=%d would_delete=%d would_index=%d failed=%d',
+				'Done. indexed=%d updated=%d skipped=%d deleted=%d would_delete=%d would_update=%d would_index=%d failed=%d',
 				$counts['indexed'],
+				$counts['updated'],
 				$counts['skipped'],
 				$counts['deleted'],
 				$counts['would_delete'],
+				$counts['would_update'],
 				$counts['would_index'],
 				$counts['failed']
 			)
@@ -174,7 +184,7 @@ final class CLI_Command {
 		$query = new WP_Query(
 			array(
 				'post_type'              => 'attachment',
-				'post_status'            => 'inherit',
+				'post_status'            => $this->get_indexable_attachment_statuses(),
 				'post_mime_type'         => array( 'image/jpeg', 'image/png', 'image/webp', 'image/gif' ),
 				'posts_per_page'         => max( 1, $limit ),
 				'fields'                 => 'ids',
@@ -251,7 +261,7 @@ final class CLI_Command {
 		$query = new WP_Query(
 			array(
 				'post_type'              => 'attachment',
-				'post_status'            => 'inherit',
+				'post_status'            => $this->get_indexable_attachment_statuses(),
 				'post_mime_type'         => array( 'image/jpeg', 'image/png', 'image/webp', 'image/gif' ),
 				'posts_per_page'         => max( 1, $limit ),
 				'fields'                 => 'ids',
@@ -265,9 +275,11 @@ final class CLI_Command {
 
 		$counts = array(
 			'indexed'      => 0,
+			'updated'      => 0,
 			'skipped'      => 0,
 			'deleted'      => 0,
 			'would_delete' => 0,
+			'would_update' => 0,
 			'would_index'  => 0,
 			'failed'       => 0,
 		);
@@ -310,11 +322,13 @@ final class CLI_Command {
 
 		WP_CLI::success(
 			sprintf(
-				'Done. indexed=%d skipped=%d deleted=%d would_delete=%d would_index=%d failed=%d',
+				'Done. indexed=%d updated=%d skipped=%d deleted=%d would_delete=%d would_update=%d would_index=%d failed=%d',
 				$counts['indexed'],
+				$counts['updated'],
 				$counts['skipped'],
 				$counts['deleted'],
 				$counts['would_delete'],
+				$counts['would_update'],
 				$counts['would_index'],
 				$counts['failed']
 			)
@@ -375,5 +389,17 @@ final class CLI_Command {
 		}
 
 		WP_CLI::success( sprintf( 'Done. ran=%d', $ran ) );
+	}
+
+	/**
+	 * Get attachment statuses that should be considered for indexing.
+	 *
+	 * Attachments commonly use "inherit", which is excluded from WP_Query's
+	 * "any" status, so list normal editable statuses explicitly.
+	 *
+	 * @return array<int, string>
+	 */
+	private function get_indexable_attachment_statuses(): array {
+		return array( 'inherit', 'publish', 'future', 'draft', 'pending', 'private' );
 	}
 }

@@ -145,13 +145,42 @@ final class Database {
 	}
 
 	/**
-	 * Get published embedding rows matching the configured model and post types.
+	 * Update stored post state for an existing embedding row.
+	 *
+	 * @param int    $post_id Post ID.
+	 * @param string $model Embedding model.
+	 * @param string $post_type Current post type.
+	 * @param string $post_status Current post status.
+	 */
+	public function update_embedding_post_state( int $post_id, string $model, string $post_type, string $post_status ): bool {
+		global $wpdb;
+
+		$result = $wpdb->update(
+			$this->table_name(),
+			array(
+				'post_type'   => $post_type,
+				'post_status' => $post_status,
+				'updated_at'  => current_time( 'mysql' ),
+			),
+			array(
+				'post_id'         => $post_id,
+				'embedding_model' => $model,
+			),
+			array( '%s', '%s', '%s' ),
+			array( '%d', '%s' )
+		);
+
+		return false !== $result;
+	}
+
+	/**
+	 * Get embedding rows matching the configured model and post types.
 	 *
 	 * @param string                $model Embedding model.
 	 * @param array<int, string>    $post_types Post types.
 	 * @return array<int, array<string, mixed>>
 	 */
-	public function get_searchable_embeddings( string $model, array $post_types ): array {
+	public function get_candidate_embeddings( string $model, array $post_types ): array {
 		global $wpdb;
 
 		$post_types = array_values( array_filter( array_map( 'sanitize_key', $post_types ) ) );
@@ -163,7 +192,7 @@ final class Database {
 		$params       = array_merge( array( $model ), $post_types );
 
 		$sql = 'SELECT post_id, post_type, embedding, dimensions FROM ' . $this->table_name()
-			. " WHERE embedding_model = %s AND post_type IN ({$placeholders}) AND post_status = 'publish'";
+			. " WHERE embedding_model = %s AND post_type IN ({$placeholders})";
 
 		$rows = $wpdb->get_results( $wpdb->prepare( $sql, $params ), ARRAY_A );
 

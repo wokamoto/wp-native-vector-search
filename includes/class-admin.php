@@ -269,7 +269,7 @@ final class Admin {
 				value="1"
 				<?php checked( (bool) $this->settings->get( 'auto_index' ) ); ?>
 			/>
-			<?php esc_html_e( 'Generate embeddings when configured posts are published or updated.', 'wp-native-vector-search' ); ?>
+			<?php esc_html_e( 'Generate embeddings when configured posts are saved or their status changes.', 'wp-native-vector-search' ); ?>
 		</label>
 		<?php
 	}
