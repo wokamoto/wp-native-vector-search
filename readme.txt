@@ -10,6 +10,8 @@ License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
 Semantic search for WordPress posts and image media using OpenAI embeddings, stored locally in the WordPress database.
 
+Important: This plugin is intended for technical evaluation. Using it on sites with a large amount of data may cause severe performance degradation. If you want to use it on a production site, replace the cosine similarity search currently performed in PHP with a dedicated Vector DB.
+
 == Description ==
 
 WP Native Vector Search stores OpenAI embeddings in a custom WordPress database table and provides semantic search for posts, pages, and image media.

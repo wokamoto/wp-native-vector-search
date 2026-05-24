@@ -1,5 +1,7 @@
 # WP Native Vector Search
 
+> This plugin is intended for technical evaluation. Using it on sites with a large amount of data may cause severe performance degradation. If you want to use it on a production site, replace the cosine similarity search currently performed in PHP with a dedicated Vector DB.
+
 WP Native Vector Search is a local-first WordPress plugin that stores OpenAI embeddings in a WordPress database table and provides semantic search for posts, pages, and image media.
 
 It does not require an external vector database.

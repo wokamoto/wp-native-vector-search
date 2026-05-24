@@ -1,5 +1,7 @@
 # WP Native Vector Search
 
+> これは技術検証用のプラグインです。データが多いサイトで使用すると著しいパフォーマンス低下を起こす可能性があります。本番サイトで使用したい場合は、このプラグインがPHPで行っているコサイン類似検索を専用のVector DBに置き換えてください。
+
 WP Native Vector Search は、OpenAI の embedding を WordPress のデータベースに保存し、投稿・固定ページ・画像メディアを意味検索できるようにする WordPress プラグインです。
 
 外部 Vector DB は使用しません。
