@@ -74,6 +74,7 @@ final class Admin {
 
 		add_settings_field( 'api_key', __( 'OpenAI API Key', 'wp-native-vector-search' ), array( $this, 'render_api_key_field' ), 'wp-native-vector-search', 'wp_native_vector_search_main' );
 		add_settings_field( 'embedding_model', __( 'Embedding Model', 'wp-native-vector-search' ), array( $this, 'render_model_field' ), 'wp-native-vector-search', 'wp_native_vector_search_main' );
+		add_settings_field( 'search_backend', __( 'Search Backend', 'wp-native-vector-search' ), array( $this, 'render_search_backend_field' ), 'wp-native-vector-search', 'wp_native_vector_search_main' );
 		add_settings_field( 'vision_model', __( 'Vision Model', 'wp-native-vector-search' ), array( $this, 'render_vision_model_field' ), 'wp-native-vector-search', 'wp_native_vector_search_main' );
 		add_settings_field( 'post_types', __( 'Post Types', 'wp-native-vector-search' ), array( $this, 'render_post_types_field' ), 'wp-native-vector-search', 'wp_native_vector_search_main' );
 		add_settings_field( 'max_chars', __( 'Maximum Characters', 'wp-native-vector-search' ), array( $this, 'render_max_chars_field' ), 'wp-native-vector-search', 'wp_native_vector_search_main' );
@@ -105,6 +106,9 @@ final class Admin {
 				);
 				?>
 			</p>
+			<?php if ( $this->database instanceof Database_Maria ) : ?>
+				<?php $this->render_vector_diagnostics(); ?>
+			<?php endif; ?>
 			<form action="options.php" method="post">
 				<?php
 				settings_fields( 'wp_native_vector_search' );
@@ -147,6 +151,76 @@ final class Admin {
 			value="<?php echo esc_attr( $value ); ?>"
 			class="regular-text"
 		/>
+		<?php
+	}
+
+	/**
+	 * Render search backend field.
+	 */
+	public function render_search_backend_field(): void {
+		$value = (string) $this->settings->get( 'search_backend' );
+		?>
+		<select name="<?php echo esc_attr( Settings::OPTION_NAME ); ?>[search_backend]">
+			<option value="php" <?php selected( $value, 'php' ); ?>><?php esc_html_e( 'PHP fallback', 'wp-native-vector-search' ); ?></option>
+			<option value="mariadb_vector" <?php selected( $value, 'mariadb_vector' ); ?>><?php esc_html_e( 'MariaDB Vector', 'wp-native-vector-search' ); ?></option>
+			<option value="auto" <?php selected( $value, 'auto' ); ?>><?php esc_html_e( 'Auto', 'wp-native-vector-search' ); ?></option>
+		</select>
+		<p class="description"><?php esc_html_e( 'Auto uses MariaDB Vector when the selected model dimension is available and falls back to PHP otherwise.', 'wp-native-vector-search' ); ?></p>
+		<?php
+	}
+
+	/**
+	 * Render MariaDB Vector diagnostics.
+	 */
+	private function render_vector_diagnostics(): void {
+		if ( ! $this->database instanceof Database_Maria ) {
+			return;
+		}
+
+		$status = $this->database->get_mariadb_vector_status();
+		?>
+		<h2><?php esc_html_e( 'MariaDB Vector Diagnostics', 'wp-native-vector-search' ); ?></h2>
+		<table class="widefat striped" style="max-width: 760px;">
+			<tbody>
+				<tr>
+					<th scope="row"><?php esc_html_e( 'Server Version', 'wp-native-vector-search' ); ?></th>
+					<td><?php echo esc_html( (string) $status['server_version'] ); ?></td>
+				</tr>
+				<tr>
+					<th scope="row"><?php esc_html_e( 'MariaDB Vector Functions', 'wp-native-vector-search' ); ?></th>
+					<td><?php echo esc_html( ! empty( $status['vector_functions_available'] ) ? __( 'Available', 'wp-native-vector-search' ) : __( 'Unavailable', 'wp-native-vector-search' ) ); ?></td>
+				</tr>
+				<?php foreach ( (array) $status['tables'] as $dimension => $table_status ) : ?>
+					<tr>
+						<th scope="row">
+							<?php
+							printf(
+								/* translators: %d: vector dimensions. */
+								esc_html__( 'Vector Table %d', 'wp-native-vector-search' ),
+								(int) $dimension
+							);
+							?>
+						</th>
+						<td>
+							<?php
+							printf(
+								/* translators: 1: table name, 2: status. */
+								esc_html__( '%1$s: %2$s', 'wp-native-vector-search' ),
+								esc_html( (string) $table_status['table_name'] ),
+								esc_html( ! empty( $table_status['available'] ) ? __( 'available', 'wp-native-vector-search' ) : __( 'not ready', 'wp-native-vector-search' ) )
+							);
+							?>
+						</td>
+					</tr>
+				<?php endforeach; ?>
+				<?php if ( '' !== (string) $status['last_write_error'] ) : ?>
+					<tr>
+						<th scope="row"><?php esc_html_e( 'Last Vector Write Error', 'wp-native-vector-search' ); ?></th>
+						<td><?php echo esc_html( (string) $status['last_write_error'] ); ?></td>
+					</tr>
+				<?php endif; ?>
+			</tbody>
+		</table>
 		<?php
 	}
 

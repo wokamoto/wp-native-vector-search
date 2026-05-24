@@ -4,19 +4,21 @@ Tags: search, semantic search, vector search, openai, media
 Requires at least: 6.5
 Tested up to: 6.9
 Requires PHP: 8.0
-Stable tag: 0.1.2
+Stable tag: 0.2.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
 Semantic search for WordPress posts and image media using OpenAI embeddings, stored locally in the WordPress database.
 
-Important: This plugin is intended for technical evaluation. Using it on sites with a large amount of data may cause severe performance degradation. If you want to use it on a production site, replace the cosine similarity search currently performed in PHP with a dedicated Vector DB.
+Important: This plugin is intended for technical evaluation. The default PHP cosine similarity search is simple but can be slow on large datasets. MariaDB 11.7+ installations can optionally use MariaDB Vector for database-side vector search.
 
 == Description ==
 
 WP Native Vector Search stores OpenAI embeddings in a custom WordPress database table and provides semantic search for posts, pages, and image media.
 
-The plugin does not require an external vector database. Embeddings are stored in MySQL as JSON arrays and cosine similarity is calculated in PHP.
+The plugin does not require an external vector database. Embeddings are stored in MySQL or MariaDB as JSON arrays and cosine similarity can be calculated in PHP.
+
+When the site runs on MariaDB 11.7 or later, the plugin can also mirror supported embedding dimensions into MariaDB Vector tables and run similarity search in MariaDB. The JSON embedding table remains the source of truth and the fallback path.
 
 Post embeddings are stored regardless of post status. Search checks the current WordPress status at query time and only returns publicly searchable posts. Media embeddings are searchable regardless of attachment status when media search is enabled.
 
@@ -32,6 +34,9 @@ Post embeddings are stored regardless of post status. Search checks the current 
 * Hide weak matches below a configurable minimum score.
 * Add a Gutenberg block named `Vector Search Box`.
 * Provide WP-CLI commands for bulk indexing.
+* Optionally use MariaDB Vector for database-side vector search.
+* Choose PHP, MariaDB Vector, or automatic search backend selection.
+* Provide WP-CLI commands for MariaDB Vector diagnostics, table creation, and migration.
 * Show generated image descriptions in the Media Library admin UI.
 * Optionally replace standard WordPress search forms with vector search.
 
@@ -74,7 +79,43 @@ When the constant is defined, it takes precedence over the saved setting.
 
 = Does this plugin require an external vector database? =
 
-No. Embeddings are stored in a custom WordPress database table.
+No. Embeddings are stored in a custom WordPress database table. PHP cosine similarity search works without an external vector database.
+
+= Can this use MariaDB Vector for search? =
+
+Yes. MariaDB 11.7+ can use MariaDB Vector for database-side vector search. MariaDB 11.8 is recommended.
+
+The plugin creates dimension-specific vector tables:
+
+* `wp_vector_search_embeddings_vec_1536`
+* `wp_vector_search_embeddings_vec_3072`
+
+Supported dimensions map to the current OpenAI embedding models:
+
+* 1536 dimensions: `text-embedding-3-small` and `text-embedding-ada-002`
+* 3072 dimensions: `text-embedding-3-large`
+
+JSON embeddings stay in `wp_vector_search_embeddings` as the source of truth. New indexing writes to the matching MariaDB Vector table when it is available.
+
+= How do I enable MariaDB Vector search? =
+
+Use WP-CLI to inspect support, create vector tables, and migrate existing embeddings:
+
+`
+wp vector-search vector-status
+wp vector-search create-vector-tables
+wp vector-search migrate-vectors --dimension=1536
+`
+
+Use `--dimension=3072` when the selected embedding model uses 3072 dimensions.
+
+Then open `Settings > Vector Search` and set `Search Backend` to `MariaDB Vector` or `Auto`.
+
+Backend options:
+
+* `PHP`: use JSON embeddings and PHP cosine similarity.
+* `MariaDB Vector`: require a ready MariaDB Vector table for the selected model.
+* `Auto`: use MariaDB Vector when available and fall back to PHP otherwise.
 
 = Which OpenAI models are used by default? =
 
@@ -168,6 +209,16 @@ Options:
 
 If an image description has not been generated yet, `index-media` generates it before creating the embedding.
 
+= Which WP-CLI commands are available for MariaDB Vector? =
+
+MariaDB Vector commands are registered only when WordPress is connected to MariaDB:
+
+* `vector-status --dimension=1536 --refresh`
+* `create-vector-tables --dimension=1536`
+* `migrate-vectors --dimension=1536 --batch=100`
+
+When `--dimension` is omitted, `vector-status` and `create-vector-tables` process all supported dimensions. `migrate-vectors` uses the dimension for the currently selected embedding model.
+
 = What does the REST API return? =
 
 The endpoint applies a simple IP-based rate limit and caches normalized query embeddings for five minutes to reduce accidental API overuse.
@@ -237,6 +288,16 @@ This version is intended for local development and experimentation. Uploaded or 
 
 == Changelog ==
 
+= 0.2.0 =
+
+* Added optional MariaDB Vector search backend for MariaDB 11.7+.
+* Added dimension-specific MariaDB Vector tables for 1536 and 3072 dimension embeddings.
+* Added PHP, MariaDB Vector, and Auto search backend settings.
+* Added MariaDB Vector diagnostics to the settings screen.
+* Added WP-CLI commands for vector status, table creation, and migration.
+* Added dual-write indexing to mirror supported embeddings into MariaDB Vector tables.
+* Added unit tests for the core plugin classes.
+
 = 0.1.2 =
 
 * Added shared embedding text normalization and short-lived query embedding caching.
@@ -265,6 +326,10 @@ This version is intended for local development and experimentation. Uploaded or 
 * Added optional standard WordPress search form replacement.
 
 == Upgrade Notice ==
+
+= 0.2.0 =
+
+MariaDB Vector support is optional. Existing JSON embeddings continue to work with the PHP backend. Run `wp vector-search vector-status`, create vector tables, and migrate existing embeddings before selecting the MariaDB Vector backend.
 
 = 0.1.2 =
 

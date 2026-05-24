@@ -23,6 +23,12 @@ final class Settings {
 		'text-embedding-ada-002',
 	);
 
+	private const ALLOWED_SEARCH_BACKENDS = array(
+		'php',
+		'mariadb_vector',
+		'auto',
+	);
+
 	/**
 	 * Register Settings API hooks.
 	 */
@@ -46,17 +52,18 @@ final class Settings {
 	 */
 	public static function defaults(): array {
 		return array(
-			'api_key'         => '',
-			'embedding_model' => 'text-embedding-3-small',
-			'vision_model'    => 'gpt-4.1-mini',
-			'max_chars'       => 8000,
-			'min_score'       => 0.25,
-			'keyword_boost'   => true,
+			'api_key'           => '',
+			'embedding_model'   => 'text-embedding-3-small',
+			'vision_model'      => 'gpt-4.1-mini',
+			'search_backend'    => 'php',
+			'max_chars'         => 8000,
+			'min_score'         => 0.25,
+			'keyword_boost'     => true,
 			'max_keyword_boost' => 0.2,
-			'auto_index'      => true,
+			'auto_index'        => true,
 			'include_attachments' => true,
-			'replace_search'  => false,
-			'post_types'      => array( 'post' ),
+			'replace_search'    => false,
+			'post_types'        => array( 'post' ),
 		);
 	}
 
@@ -101,6 +108,32 @@ final class Settings {
 
 		if ( ! in_array( $settings['embedding_model'], self::ALLOWED_EMBEDDING_MODELS, true ) ) {
 			$settings['embedding_model'] = $defaults['embedding_model'];
+		}
+
+		$settings['search_backend'] = isset( $input['search_backend'] )
+			? sanitize_key( wp_unslash( (string) $input['search_backend'] ) )
+			: $current['search_backend'];
+
+		if ( ! in_array( $settings['search_backend'], self::ALLOWED_SEARCH_BACKENDS, true ) ) {
+			$settings['search_backend'] = $defaults['search_backend'];
+		}
+
+		if ( 'mariadb_vector' === $settings['search_backend'] ) {
+			$database   = new Database_Maria();
+			$dimensions = $database->get_model_dimensions( $settings['embedding_model'] );
+			$status     = $database->get_mariadb_vector_status( $dimensions, true );
+
+			if ( empty( $status['available'] ) ) {
+				add_settings_error(
+					self::OPTION_NAME,
+					'wp_native_vector_search_mariadb_vector_unavailable',
+					__( 'MariaDB Vector backend was not saved because the required vector table or index is not available for the selected embedding model.', 'wp-native-vector-search' ),
+					'error'
+				);
+				$settings['search_backend'] = in_array( (string) $current['search_backend'], self::ALLOWED_SEARCH_BACKENDS, true )
+					? (string) $current['search_backend']
+					: $defaults['search_backend'];
+			}
 		}
 
 		$settings['vision_model'] = isset( $input['vision_model'] )

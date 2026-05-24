@@ -170,6 +170,23 @@ This allows natural-language search queries such as:
 - `管理画面のスクリーンショット`
 - `WordPress と Headless CMS の図解`
 
+## Search Backend
+
+The default backend is PHP fallback, which reads JSON embeddings and calculates cosine similarity in PHP.
+
+MariaDB 11.7+ installations can optionally use MariaDB Vector:
+
+- `php`: always use the JSON/PHP fallback path.
+- `mariadb_vector`: require a ready MariaDB Vector table for the selected embedding model.
+- `auto`: use MariaDB Vector when available and fall back to PHP otherwise.
+
+Vector tables are dimension-specific:
+
+- `wp_vector_search_embeddings_vec_1536`
+- `wp_vector_search_embeddings_vec_3072`
+
+The JSON embeddings table remains the compatibility source of truth.
+
 ## WP-CLI Commands
 
 ### Index Posts
@@ -242,6 +259,32 @@ wp vector-search index-media --limit=100
 ```
 
 If an image description has not been generated yet, `index-media` generates it before creating the embedding.
+
+### MariaDB Vector Operations
+
+```sh
+wp vector-search vector-status
+wp vector-search create-vector-tables
+wp vector-search migrate-vectors --dimension=1536
+```
+
+Options:
+
+- `vector-status --dimension=1536 --refresh`
+- `create-vector-tables --dimension=1536`
+- `migrate-vectors --dimension=1536 --batch=100`
+
+Create the vector tables first, then migrate existing JSON embeddings. New indexing writes to both JSON storage and the matching vector table when MariaDB Vector is available.
+
+## Unit Tests
+
+Run the lightweight unit test suite from the plugin directory:
+
+```sh
+php tests/unit/run.php
+```
+
+The tests use local WordPress and database stubs, so they do not require Composer, PHPUnit, WordPress core, OpenAI API access, or a running database.
 
 ## REST API
 

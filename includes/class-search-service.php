@@ -14,9 +14,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Searches stored embeddings using cosine similarity.
+ * Searches stored JSON embeddings using PHP cosine similarity.
  */
-final class Search_Service {
+class Search_Service {
 	private const QUERY_EMBEDDING_CACHE_TTL = 300;
 
 	/**
@@ -24,21 +24,21 @@ final class Search_Service {
 	 *
 	 * @var Settings
 	 */
-	private Settings $settings;
+	protected Settings $settings;
 
 	/**
 	 * Database service.
 	 *
 	 * @var Database
 	 */
-	private Database $database;
+	protected Database $database;
 
 	/**
 	 * OpenAI client.
 	 *
 	 * @var OpenAI_Client
 	 */
-	private OpenAI_Client $openai_client;
+	protected OpenAI_Client $openai_client;
 
 	/**
 	 * Constructor.
@@ -72,13 +72,34 @@ final class Search_Service {
 			return $query_embedding;
 		}
 
-		$post_types = (array) $this->settings->get( 'post_types' );
-		if ( (bool) $this->settings->get( 'include_attachments' ) ) {
-			$post_types[] = 'attachment';
-		}
-		$post_types = array_values( array_unique( $post_types ) );
-		$rows       = $this->database->get_candidate_embeddings( $model, $post_types );
-		$matches    = array();
+		return $this->search_with_php(
+			$query,
+			$query_embedding,
+			$model,
+			$this->get_search_post_types(),
+			$limit,
+			$min_score,
+			$keyword_boost_enabled,
+			$max_keyword_boost
+		);
+	}
+
+	/**
+	 * Search using PHP cosine similarity over JSON embeddings.
+	 *
+	 * @param string             $query Normalized search query.
+	 * @param array<int, float>  $query_embedding Query embedding.
+	 * @param string             $model Embedding model.
+	 * @param array<int, string> $post_types Post types.
+	 * @param int                $limit Maximum results.
+	 * @param float              $min_score Minimum score.
+	 * @param bool               $keyword_boost_enabled Whether keyword boost is enabled.
+	 * @param float              $max_keyword_boost Maximum keyword boost.
+	 * @return array<int, array<string, mixed>>
+	 */
+	protected function search_with_php( string $query, array $query_embedding, string $model, array $post_types, int $limit, float $min_score, bool $keyword_boost_enabled, float $max_keyword_boost ): array {
+		$rows    = $this->database->get_candidate_embeddings( $model, $post_types );
+		$matches = array();
 
 		foreach ( $rows as $row ) {
 			$post = get_post( (int) $row['post_id'] );
@@ -115,6 +136,31 @@ final class Search_Service {
 			);
 		}
 
+		return $this->format_matches( $matches, $limit );
+	}
+
+	/**
+	 * Get configured searchable post types.
+	 *
+	 * @return array<int, string>
+	 */
+	protected function get_search_post_types(): array {
+		$post_types = (array) $this->settings->get( 'post_types' );
+		if ( (bool) $this->settings->get( 'include_attachments' ) ) {
+			$post_types[] = 'attachment';
+		}
+
+		return array_values( array_unique( $post_types ) );
+	}
+
+	/**
+	 * Sort and format matches.
+	 *
+	 * @param array<int, array<string, mixed>> $matches Matches.
+	 * @param int                             $limit Maximum results.
+	 * @return array<int, array<string, mixed>>
+	 */
+	protected function format_matches( array $matches, int $limit ): array {
 		usort(
 			$matches,
 			static function ( array $a, array $b ): int {
@@ -149,7 +195,7 @@ final class Search_Service {
 	 * @param string $model Embedding model.
 	 * @return array<int, float>|WP_Error
 	 */
-	private function get_query_embedding( string $query, string $model ) {
+	protected function get_query_embedding( string $query, string $model ) {
 		$cache_key = 'wpnvs_qemb_' . hash( 'sha256', $model . "\n" . $query );
 		$cached    = get_transient( $cache_key );
 
@@ -170,11 +216,11 @@ final class Search_Service {
 	/**
 	 * Format a post search result.
 	 *
-	 * @param \WP_Post $post Post object.
+	 * @param \WP_Post            $post Post object.
 	 * @param array<string, mixed> $match Match scores.
 	 * @return array<string, mixed>
 	 */
-	private function format_post_result( \WP_Post $post, array $match ): array {
+	protected function format_post_result( \WP_Post $post, array $match ): array {
 		return array(
 			'type'          => 'post',
 			'post_id'       => (int) $post->ID,
@@ -192,11 +238,11 @@ final class Search_Service {
 	/**
 	 * Format a media search result.
 	 *
-	 * @param \WP_Post $attachment Attachment object.
+	 * @param \WP_Post            $attachment Attachment object.
 	 * @param array<string, mixed> $match Match scores.
 	 * @return array<string, mixed>
 	 */
-	private function format_media_result( \WP_Post $attachment, array $match ): array {
+	protected function format_media_result( \WP_Post $attachment, array $match ): array {
 		return array(
 			'type'           => 'media',
 			'attachment_id'  => (int) $attachment->ID,
@@ -218,7 +264,7 @@ final class Search_Service {
 	 *
 	 * @param \WP_Post $post Post or attachment object.
 	 */
-	private function build_result_description( \WP_Post $post ): string {
+	protected function build_result_description( \WP_Post $post ): string {
 		if ( 'attachment' === $post->post_type ) {
 			$description = (string) get_post_meta( (int) $post->ID, Media_Describer::META_DESCRIPTION, true );
 			if ( '' !== trim( $description ) ) {
@@ -239,7 +285,7 @@ final class Search_Service {
 	 *
 	 * @param string $text Input text.
 	 */
-	private function trim_result_description( string $text ): string {
+	protected function trim_result_description( string $text ): string {
 		$text = preg_replace( '/\s+/u', ' ', $text );
 		$text = is_string( $text ) ? trim( $text ) : '';
 
@@ -259,7 +305,7 @@ final class Search_Service {
 	 *
 	 * @param \WP_Post $post Post object.
 	 */
-	private function get_post_thumbnail_url( \WP_Post $post ): string {
+	protected function get_post_thumbnail_url( \WP_Post $post ): string {
 		$thumbnail_url = get_the_post_thumbnail_url( $post, 'thumbnail' );
 
 		return is_string( $thumbnail_url ) ? $thumbnail_url : '';
@@ -272,7 +318,7 @@ final class Search_Service {
 	 * @param \WP_Post $post Matched post or attachment.
 	 * @param float    $max_boost Maximum boost.
 	 */
-	private function calculate_keyword_boost( string $query, \WP_Post $post, float $max_boost ): float {
+	protected function calculate_keyword_boost( string $query, \WP_Post $post, float $max_boost ): float {
 		if ( $max_boost <= 0.0 ) {
 			return 0.0;
 		}
@@ -313,7 +359,7 @@ final class Search_Service {
 	 *
 	 * @param \WP_Post $post Post object.
 	 */
-	private function build_keyword_text( \WP_Post $post ): string {
+	protected function build_keyword_text( \WP_Post $post ): string {
 		$parts = array(
 			get_the_title( $post ),
 			$post->post_excerpt,
@@ -338,7 +384,7 @@ final class Search_Service {
 	 *
 	 * @param \WP_Post $post Post object.
 	 */
-	private function is_post_searchable( \WP_Post $post ): bool {
+	protected function is_post_searchable( \WP_Post $post ): bool {
 		if ( 'attachment' === $post->post_type ) {
 			return true;
 		}
@@ -352,7 +398,7 @@ final class Search_Service {
 	 * @param string $query Normalized query.
 	 * @return array<int, string>
 	 */
-	private function build_query_terms( string $query ): array {
+	protected function build_query_terms( string $query ): array {
 		$terms = preg_split( '/[\s　]+/u', $query );
 		if ( ! is_array( $terms ) ) {
 			return array( $query );
@@ -379,7 +425,7 @@ final class Search_Service {
 	 *
 	 * @param string $text Input text.
 	 */
-	private function normalize_keyword_text( string $text ): string {
+	protected function normalize_keyword_text( string $text ): string {
 		$text = Text_Normalizer::normalize_for_embedding( $text );
 		$text = function_exists( 'mb_strtolower' ) ? mb_strtolower( $text ) : strtolower( $text );
 
@@ -392,7 +438,7 @@ final class Search_Service {
 	 * @param array<int, float> $a First vector.
 	 * @param array<int, float> $b Second vector.
 	 */
-	private function cosine_similarity( array $a, array $b ): ?float {
+	protected function cosine_similarity( array $a, array $b ): ?float {
 		$dot   = 0.0;
 		$norma = 0.0;
 		$normb = 0.0;

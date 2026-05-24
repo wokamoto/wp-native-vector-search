@@ -12,9 +12,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Handles the custom embeddings table.
+ * Handles the custom JSON embeddings table.
  */
-final class Database {
+class Database {
 	/**
 	 * Get the embeddings table name.
 	 */
@@ -176,8 +176,8 @@ final class Database {
 	/**
 	 * Get embedding rows matching the configured model and post types.
 	 *
-	 * @param string                $model Embedding model.
-	 * @param array<int, string>    $post_types Post types.
+	 * @param string             $model Embedding model.
+	 * @param array<int, string> $post_types Post types.
 	 * @return array<int, array<string, mixed>>
 	 */
 	public function get_candidate_embeddings( string $model, array $post_types ): array {

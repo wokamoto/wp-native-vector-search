@@ -33,6 +33,13 @@ final class CLI_Command {
 	private Indexer $indexer;
 
 	/**
+	 * Database service.
+	 *
+	 * @var Database
+	 */
+	private Database $database;
+
+	/**
 	 * Media describer service.
 	 *
 	 * @var Media_Describer
@@ -42,10 +49,11 @@ final class CLI_Command {
 	/**
 	 * Constructor.
 	 */
-	public function __construct( Settings $settings, Indexer $indexer, Media_Describer $media_describer ) {
+	public function __construct( Settings $settings, Indexer $indexer, Media_Describer $media_describer, Database $database ) {
 		$this->settings        = $settings;
 		$this->indexer         = $indexer;
 		$this->media_describer = $media_describer;
+		$this->database        = $database;
 	}
 
 	/**
@@ -56,6 +64,12 @@ final class CLI_Command {
 		WP_CLI::add_command( 'vector-search describe-media', array( $this, 'describe_media' ) );
 		WP_CLI::add_command( 'vector-search index-media', array( $this, 'index_media' ) );
 		WP_CLI::add_command( 'vector-search run-queue', array( $this, 'run_queue' ) );
+
+		if ( $this->database instanceof Database_Maria ) {
+			WP_CLI::add_command( 'vector-search vector-status', array( $this, 'vector_status' ) );
+			WP_CLI::add_command( 'vector-search create-vector-tables', array( $this, 'create_vector_tables' ) );
+			WP_CLI::add_command( 'vector-search migrate-vectors', array( $this, 'migrate_vectors' ) );
+		}
 	}
 
 	/**
@@ -336,6 +350,152 @@ final class CLI_Command {
 	}
 
 	/**
+	 * Print MariaDB Vector support and table status.
+	 *
+	 * ## OPTIONS
+	 *
+	 * [--dimension=<dimension>]
+	 * : Limit diagnostics to one vector dimension.
+	 *
+	 * [--refresh]
+	 * : Bypass the cached capability status.
+	 *
+	 * ## EXAMPLES
+	 *
+	 *     wp vector-search vector-status
+	 *     wp vector-search vector-status --dimension=1536 --refresh
+	 *
+	 * @param array<int, string>   $args Positional arguments.
+	 * @param array<string, mixed> $assoc_args Associative arguments.
+	 */
+	public function vector_status( array $args, array $assoc_args ): void {
+		unset( $args );
+
+		$database  = $this->get_maria_database();
+		$dimension = isset( $assoc_args['dimension'] ) ? absint( $assoc_args['dimension'] ) : null;
+		$status    = $database->get_mariadb_vector_status( $dimension, isset( $assoc_args['refresh'] ) );
+
+		WP_CLI::log( sprintf( 'Server version: %s', (string) $status['server_version'] ) );
+		WP_CLI::log( sprintf( 'MariaDB: %s', ! empty( $status['server_is_mariadb'] ) ? 'yes' : 'no' ) );
+		WP_CLI::log( sprintf( 'Version supported: %s', ! empty( $status['version_supported'] ) ? 'yes' : 'no' ) );
+		WP_CLI::log( sprintf( 'Vector functions: %s', ! empty( $status['vector_functions_available'] ) ? 'available' : 'unavailable' ) );
+
+		$items = array();
+		foreach ( (array) $status['tables'] as $table_dimension => $table_status ) {
+			$items[] = array(
+				'dimension'     => (int) $table_dimension,
+				'table'         => (string) $table_status['table_name'],
+				'table_exists'  => ! empty( $table_status['table_exists'] ) ? 'yes' : 'no',
+				'vector_index'  => ! empty( $table_status['vector_index_exists'] ) ? 'yes' : 'no',
+				'available'     => ! empty( $table_status['available'] ) ? 'yes' : 'no',
+			);
+		}
+
+		\WP_CLI\Utils\format_items( 'table', $items, array( 'dimension', 'table', 'table_exists', 'vector_index', 'available' ) );
+
+		if ( '' !== (string) $status['last_write_error'] ) {
+			WP_CLI::warning( sprintf( 'Last vector write error: %s', (string) $status['last_write_error'] ) );
+		}
+	}
+
+	/**
+	 * Create MariaDB Vector tables.
+	 *
+	 * ## OPTIONS
+	 *
+	 * [--dimension=<dimension>]
+	 * : Create one dimension-specific table. Defaults to all supported dimensions.
+	 *
+	 * ## EXAMPLES
+	 *
+	 *     wp vector-search create-vector-tables
+	 *     wp vector-search create-vector-tables --dimension=1536
+	 *
+	 * @param array<int, string>   $args Positional arguments.
+	 * @param array<string, mixed> $assoc_args Associative arguments.
+	 */
+	public function create_vector_tables( array $args, array $assoc_args ): void {
+		unset( $args );
+
+		$database   = $this->get_maria_database();
+		$dimensions = isset( $assoc_args['dimension'] )
+			? array( absint( $assoc_args['dimension'] ) )
+			: $database->get_supported_vector_dimensions();
+
+		$created = 0;
+		foreach ( $dimensions as $dimension ) {
+			$result = $database->create_vector_table( (int) $dimension );
+			if ( is_wp_error( $result ) ) {
+				WP_CLI::warning( sprintf( 'Dimension %d: %s', (int) $dimension, $result->get_error_message() ) );
+				continue;
+			}
+
+			$created++;
+			WP_CLI::log( sprintf( 'Dimension %d: ready', (int) $dimension ) );
+		}
+
+		if ( 0 === $created ) {
+			WP_CLI::error( 'No vector tables were created.' );
+		}
+
+		WP_CLI::success( sprintf( 'Done. tables_ready=%d', $created ) );
+	}
+
+	/**
+	 * Migrate stored JSON embeddings into a MariaDB Vector table.
+	 *
+	 * ## OPTIONS
+	 *
+	 * [--dimension=<dimension>]
+	 * : Vector dimension to migrate. Defaults to the current embedding model dimensions.
+	 *
+	 * [--batch=<batch>]
+	 * : Rows per batch. Defaults to 100.
+	 *
+	 * ## EXAMPLES
+	 *
+	 *     wp vector-search migrate-vectors --dimension=1536
+	 *
+	 * @param array<int, string>   $args Positional arguments.
+	 * @param array<string, mixed> $assoc_args Associative arguments.
+	 */
+	public function migrate_vectors( array $args, array $assoc_args ): void {
+		unset( $args );
+
+		$database  = $this->get_maria_database();
+		$dimension = isset( $assoc_args['dimension'] )
+			? absint( $assoc_args['dimension'] )
+			: $database->get_model_dimensions( (string) $this->settings->get( 'embedding_model' ) );
+		$batch     = isset( $assoc_args['batch'] ) ? max( 1, absint( $assoc_args['batch'] ) ) : 100;
+		$status    = $database->get_mariadb_vector_status( $dimension, true );
+
+		if ( empty( $status['available'] ) ) {
+			WP_CLI::error( sprintf( 'MariaDB Vector table is not available for dimension %d. Run create-vector-tables first.', $dimension ) );
+		}
+
+		$migrated = 0;
+		$failed   = 0;
+		$offset   = 0;
+
+		do {
+			$rows = $database->get_embeddings_for_vector_migration( $dimension, $batch, $offset );
+			foreach ( $rows as $row ) {
+				if ( $database->upsert_vector_embedding_from_row( $row ) ) {
+					$migrated++;
+					continue;
+				}
+
+				$failed++;
+				WP_CLI::warning( sprintf( 'Post %d: vector migration failed', (int) $row['post_id'] ) );
+			}
+
+			$offset += $batch;
+		} while ( count( $rows ) === $batch );
+
+		WP_CLI::success( sprintf( 'Done. migrated=%d failed=%d', $migrated, $failed ) );
+	}
+
+	/**
 	 * Run queued post indexing jobs.
 	 *
 	 * ## OPTIONS
@@ -401,5 +561,16 @@ final class CLI_Command {
 	 */
 	private function get_indexable_attachment_statuses(): array {
 		return array( 'inherit', 'publish', 'future', 'draft', 'pending', 'private' );
+	}
+
+	/**
+	 * Get the MariaDB database service for vector commands.
+	 */
+	private function get_maria_database(): Database_Maria {
+		if ( $this->database instanceof Database_Maria ) {
+			return $this->database;
+		}
+
+		WP_CLI::error( 'MariaDB Vector commands are only available when connected to MariaDB.' );
 	}
 }

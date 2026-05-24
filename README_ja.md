@@ -170,6 +170,23 @@ embedding 対象:
 - `管理画面のスクリーンショット`
 - `WordPress と Headless CMS の図解`
 
+## 検索 backend
+
+デフォルトは PHP fallback です。JSON embedding を読み込み、PHP で cosine similarity を計算します。
+
+MariaDB 11.7+ では MariaDB Vector を任意で利用できます。
+
+- `php`: 常に JSON/PHP fallback を使います。
+- `mariadb_vector`: 選択中の embedding model に対応する MariaDB Vector table が利用可能な場合だけ使います。
+- `auto`: MariaDB Vector が利用可能な場合は使い、利用できない場合は PHP に fallback します。
+
+Vector table は dimension ごとに分かれます。
+
+- `wp_vector_search_embeddings_vec_1536`
+- `wp_vector_search_embeddings_vec_3072`
+
+互換性のため、JSON embedding table は引き続き source of truth として保持します。
+
 ## WP-CLI コマンド
 
 ### 投稿 index
@@ -242,6 +259,32 @@ wp vector-search index-media --limit=100
 ```
 
 画像説明文が未生成の場合、`index-media` は説明文を生成してから embedding を作成します。
+
+### MariaDB Vector 操作
+
+```sh
+wp vector-search vector-status
+wp vector-search create-vector-tables
+wp vector-search migrate-vectors --dimension=1536
+```
+
+オプション:
+
+- `vector-status --dimension=1536 --refresh`
+- `create-vector-tables --dimension=1536`
+- `migrate-vectors --dimension=1536 --batch=100`
+
+先に vector table を作成し、既存 JSON embedding を移行します。新規 index では、MariaDB Vector が利用可能な場合に JSON storage と対応する vector table の両方へ書き込みます。
+
+## ユニットテスト
+
+プラグインディレクトリで軽量ユニットテストを実行します。
+
+```sh
+php tests/unit/run.php
+```
+
+テストは WordPress 関数とデータベースをローカル stub で置き換えるため、Composer、PHPUnit、WordPress core、OpenAI API access、起動中の database は不要です。
 
 ## REST API
 

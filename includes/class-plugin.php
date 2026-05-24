@@ -20,11 +20,14 @@ final class Plugin {
 	 */
 	public function register(): void {
 		$settings        = new Settings();
-		$database        = new Database();
+		$maria_database  = new Database_Maria();
+		$database        = $maria_database->is_mariadb_server() ? $maria_database : new Database();
 		$openai_client   = new OpenAI_Client( $settings );
 		$media_describer = new Media_Describer( $settings, $openai_client );
 		$indexer         = new Indexer( $settings, $database, $openai_client );
-		$search_service  = new Search_Service( $settings, $database, $openai_client );
+		$search_service  = $database instanceof Database_Maria
+			? new Search_Service_Maria( $settings, $database, $openai_client )
+			: new Search_Service( $settings, $database, $openai_client );
 
 		$settings->register();
 		$media_describer->register();
@@ -38,7 +41,7 @@ final class Plugin {
 		}
 
 		if ( defined( 'WP_CLI' ) && WP_CLI ) {
-			( new CLI_Command( $settings, $indexer, $media_describer ) )->register();
+			( new CLI_Command( $settings, $indexer, $media_describer, $database ) )->register();
 		}
 	}
 }
