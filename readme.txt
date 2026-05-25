@@ -4,7 +4,7 @@ Tags: search, semantic search, vector search, openai, media
 Requires at least: 6.5
 Tested up to: 6.9
 Requires PHP: 8.0
-Stable tag: 0.2.0
+Stable tag: 0.2.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -288,6 +288,10 @@ This version is intended for local development and experimentation. Uploaded or 
 
 == Changelog ==
 
+= 0.2.1 =
+
+* Limited search result links to titles and thumbnails so descriptions remain plain text.
+
 = 0.2.0 =
 
 * Added optional MariaDB Vector search backend for MariaDB 11.7+.
@@ -326,6 +330,10 @@ This version is intended for local development and experimentation. Uploaded or 
 * Added optional standard WordPress search form replacement.
 
 == Upgrade Notice ==
+
+= 0.2.1 =
+
+Search result descriptions are no longer part of the clickable link area.
 
 = 0.2.0 =
 

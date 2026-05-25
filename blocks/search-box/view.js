@@ -31,13 +31,13 @@
 
 		items.forEach( function ( item ) {
 			var li = document.createElement( 'li' );
-			var link = document.createElement( 'a' );
+			var titleLink = document.createElement( 'a' );
 			var title = document.createElement( 'span' );
 			var content = document.createElement( 'div' );
 			var score = document.createElement( 'span' );
 
-			link.href = item.url;
-			link.className = 'wp-native-vector-search-box__result-link';
+			titleLink.href = item.url;
+			titleLink.className = 'wp-native-vector-search-box__result-title-link';
 			content.className = 'wp-native-vector-search-box__result-content';
 			title.className = 'wp-native-vector-search-box__result-title';
 			title.textContent = item.title || String( item.post_id );
@@ -45,16 +45,21 @@
 			score.textContent = Number( item.score ).toFixed( 3 );
 
 			if ( item.thumbnail_url ) {
+				var thumbnailLink = document.createElement( 'a' );
 				var thumbnail = document.createElement( 'img' );
+				thumbnailLink.href = item.url;
+				thumbnailLink.className = 'wp-native-vector-search-box__thumbnail-link';
 				thumbnail.className = 'wp-native-vector-search-box__thumbnail';
 				thumbnail.src = item.thumbnail_url;
 				thumbnail.alt = item.title || '';
 				thumbnail.loading = 'lazy';
 				thumbnail.decoding = 'async';
-				link.appendChild( thumbnail );
+				thumbnailLink.appendChild( thumbnail );
+				li.appendChild( thumbnailLink );
 			}
 
-			content.appendChild( title );
+			titleLink.appendChild( title );
+			content.appendChild( titleLink );
 			if ( item.description ) {
 				var description = document.createElement( 'span' );
 				description.className = 'wp-native-vector-search-box__result-description';
@@ -62,8 +67,7 @@
 				content.appendChild( description );
 			}
 
-			link.appendChild( content );
-			li.appendChild( link );
+			li.appendChild( content );
 			li.appendChild( score );
 			results.appendChild( li );
 		} );

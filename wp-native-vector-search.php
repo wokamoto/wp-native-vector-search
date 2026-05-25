@@ -2,7 +2,7 @@
 /**
  * Plugin Name: WP Native Vector Search
  * Description: Stores OpenAI embeddings in WordPress tables and exposes semantic post search.
- * Version: 0.2.0
+ * Version: 0.2.1
  * Requires at least: 6.5
  * Requires PHP: 8.0
  * Author: wokamoto
@@ -15,7 +15,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 
-define( 'WP_NATIVE_VECTOR_SEARCH_VERSION', '0.2.0' );
+define( 'WP_NATIVE_VECTOR_SEARCH_VERSION', '0.2.1' );
 define( 'WP_NATIVE_VECTOR_SEARCH_FILE', __FILE__ );
 define( 'WP_NATIVE_VECTOR_SEARCH_DIR', plugin_dir_path( __FILE__ ) );
 define( 'WP_NATIVE_VECTOR_SEARCH_URL', plugin_dir_url( __FILE__ ) );
