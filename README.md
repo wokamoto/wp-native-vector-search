@@ -429,5 +429,7 @@ On uninstall, the plugin removes:
 
 - `wp_native_vector_search_settings`
 - `wp_vector_search_embeddings`
+- `wp_vector_search_embeddings_vec_1536`
+- `wp_vector_search_embeddings_vec_3072`
 
 Generated image description postmeta is currently removed when each attachment is deleted.

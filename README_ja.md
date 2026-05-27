@@ -429,5 +429,7 @@ Vector Search Box
 
 - `wp_native_vector_search_settings`
 - `wp_vector_search_embeddings`
+- `wp_vector_search_embeddings_vec_1536`
+- `wp_vector_search_embeddings_vec_3072`
 
 画像説明文 postmeta は、各 attachment が削除されるタイミングで削除されます。

@@ -4,7 +4,7 @@ Tags: search, semantic search, vector search, openai, media
 Requires at least: 6.5
 Tested up to: 6.9
 Requires PHP: 8.0
-Stable tag: 0.2.1
+Stable tag: 0.2.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -288,6 +288,10 @@ This version is intended for local development and experimentation. Uploaded or 
 
 == Changelog ==
 
+= 0.2.2 =
+
+* Removed MariaDB Vector tables during plugin uninstall.
+
 = 0.2.1 =
 
 * Limited search result links to titles and thumbnails so descriptions remain plain text.
@@ -330,6 +334,10 @@ This version is intended for local development and experimentation. Uploaded or 
 * Added optional standard WordPress search form replacement.
 
 == Upgrade Notice ==
+
+= 0.2.2 =
+
+Plugin uninstall now removes MariaDB Vector tables in addition to the JSON embeddings table.
 
 = 0.2.1 =
 

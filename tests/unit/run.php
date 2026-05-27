@@ -88,6 +88,7 @@ require_once __DIR__ . '/test-search-form.php';
 require_once __DIR__ . '/test-admin.php';
 require_once __DIR__ . '/test-plugin.php';
 require_once __DIR__ . '/test-cli-command.php';
+require_once __DIR__ . '/test-uninstall.php';
 
 $passed = 0;
 $failed = 0;

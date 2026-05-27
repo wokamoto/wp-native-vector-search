@@ -612,6 +612,14 @@ function sanitize_text_field( $value ): string {
 	return is_string( $value ) ? trim( $value ) : '';
 }
 
+function esc_sql( $data ) {
+	if ( is_array( $data ) ) {
+		return array_map( 'esc_sql', $data );
+	}
+
+	return addslashes( (string) $data );
+}
+
 function current_time( string $type, bool $gmt = false ): string {
 	unset( $type, $gmt );
 
@@ -632,6 +640,12 @@ function add_option( string $name, $value, string $deprecated = '', bool $autolo
 function update_option( string $name, $value, bool $autoload = true ): bool {
 	unset( $autoload );
 	$GLOBALS['wpnvs_test_options'][ $name ] = $value;
+
+	return true;
+}
+
+function delete_option( string $name ): bool {
+	unset( $GLOBALS['wpnvs_test_options'][ $name ] );
 
 	return true;
 }
